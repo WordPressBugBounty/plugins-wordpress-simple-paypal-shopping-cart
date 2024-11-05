@@ -166,6 +166,12 @@ function wspsc_stripe_create_checkout_session() {
 			);
 		}
 
+		// Collect automatic tax if enabled.
+		if ( get_option('wpsc_enable_stripe_automatic_tax') ){
+			$opts["automatic_tax"] = array(
+				'enabled' => true,
+			);
+		}
 
 		$opts = apply_filters( 'wpspsc_stripe_sca_session_opts', $opts, $cart_id );
 
