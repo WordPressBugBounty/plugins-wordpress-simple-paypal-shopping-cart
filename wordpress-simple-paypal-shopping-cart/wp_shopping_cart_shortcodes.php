@@ -1,14 +1,26 @@
 <?php
 
-add_shortcode('show_wp_shopping_cart', 'show_wp_shopping_cart_handler');
-add_shortcode('always_show_wp_shopping_cart', 'always_show_cart_handler');
-add_shortcode('wp_cart_button', 'wp_cart_button_handler');
-add_shortcode('wp_cart_display_product', 'wp_cart_display_product_handler');
-add_shortcode('wp_compact_cart', 'wspsc_compact_cart_handler');
-add_shortcode('wp_compact_cart2', 'wspsc_compact_cart2_handler');
+add_shortcode('wpsc_show_shopping_cart', 'wpsc_show_wp_shopping_cart_handler' );
+add_shortcode('show_wp_shopping_cart', 'wpsc_show_wp_shopping_cart_handler' );
+
+add_shortcode('wpsc_always_show_shopping_cart', 'wpsc_always_show_cart_handler' );
+add_shortcode('always_show_wp_shopping_cart', 'wpsc_always_show_cart_handler' );
+
+add_shortcode('wpsc_add_to_cart_button', 'wpsc_cart_button_handler' );
+add_shortcode('wp_cart_button', 'wpsc_cart_button_handler' );
+
+add_shortcode('wpsc_display_product', 'wpsc_cart_display_product_handler' );
+add_shortcode('wp_cart_display_product', 'wpsc_cart_display_product_handler' );
+
+add_shortcode('wpsc_compact_cart', 'wpsc_compact_cart_handler');
+add_shortcode('wp_compact_cart', 'wpsc_compact_cart_handler');
+
+add_shortcode('wpsc_compact_cart2', 'wpsc_compact_cart2_handler');
+add_shortcode('wp_compact_cart2', 'wpsc_compact_cart2_handler');
+
 add_shortcode('wpsc_thank_you', 'wpsc_thank_you_sc_handler');
 
-function wp_cart_button_handler($atts){
+function wpsc_cart_button_handler($atts){
 	extract(shortcode_atts(array(
 		'name' => '',
         'item_number' =>'',
@@ -40,13 +52,13 @@ function wp_cart_button_handler($atts){
 	if(empty($price)){
             return '<div style="color:red;">'.(__("Error! You must specify a price for your product in the shortcode.", "wordpress-simple-paypal-shopping-cart")).'</div>';
 	}
-    $price = wspsc_strip_char_from_price_amount($price);
-    $shipping = wspsc_strip_char_from_price_amount($shipping);
+    $price = wpsc_strip_char_from_price_amount($price);
+    $shipping = wpsc_strip_char_from_price_amount($shipping);
 
 	return print_wp_cart_button_for_product($name, $price, $shipping, $var1, $var2, $var3, $atts);
 }
 
-function wp_cart_display_product_handler($atts)
+function wpsc_cart_display_product_handler($atts)
 {
     extract(shortcode_atts(array(
         'name' => '',
@@ -90,8 +102,8 @@ function wp_cart_display_product_handler($atts)
         $thumb_alt = $name;
     }
 
-    $price = wspsc_strip_char_from_price_amount($price);
-    $shipping = wspsc_strip_char_from_price_amount($shipping);
+    $price = wpsc_strip_char_from_price_amount($price);
+    $shipping = wpsc_strip_char_from_price_amount($shipping);
     $thumbnail_code = '<img src="'.esc_url_raw($thumbnail).'" alt="'.esc_attr( $thumb_alt ).'">';
     if(!empty($thumb_target) && preg_match("/http/", $thumb_target)){
         $thumbnail_code = '<a href="'.esc_url_raw($thumb_target).'"><img src="'.esc_url_raw($thumbnail).'" alt="'.esc_attr( $thumb_alt ).'"></a>';
@@ -130,9 +142,9 @@ function wp_cart_display_product_handler($atts)
     return $display_code;
 }
 
-function wspsc_compact_cart_handler($args)
+function wpsc_compact_cart_handler($args)
 {
-    $wspsc_cart = WSPSC_Cart::get_instance();
+    $wspsc_cart = WPSC_Cart::get_instance();
     $num_items = $wspsc_cart->get_total_cart_qty();
     $curSymbol = WP_CART_CURRENCY_SYMBOL;
     $checkout_url = get_option('cart_checkout_page_url');
@@ -160,9 +172,9 @@ function wspsc_compact_cart_handler($args)
     return $output;
 }
 
-function wspsc_compact_cart2_handler($args)
+function wpsc_compact_cart2_handler($args)
 {
-    $wspsc_cart = WSPSC_Cart::get_instance();
+    $wspsc_cart = WPSC_Cart::get_instance();
     $num_items = $wspsc_cart->get_total_cart_qty();
     $checkout_url = get_option('cart_checkout_page_url');
 

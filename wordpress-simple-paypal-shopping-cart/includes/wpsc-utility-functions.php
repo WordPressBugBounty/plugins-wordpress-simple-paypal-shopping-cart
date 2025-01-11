@@ -27,26 +27,26 @@ function wpsc_is_txn_already_processed( $order_id, $ipn_data ){
 }
 
 /**
- * @deprecated This method has been deprecated. Use get_total_cart_qty() from WSPSC_Cart instead.
+ * @deprecated This method has been deprecated. Use get_total_cart_qty() from WPSC_Cart instead.
  * @return int Returns the total number of items in the cart.
  */
-function wpspc_get_total_cart_qty() {
-    $wspsc_cart = WSPSC_Cart::get_instance();
+function wpsc_get_total_cart_qty() {
+    $wspsc_cart = WPSC_Cart::get_instance();
     $total_items = $wspsc_cart->get_total_cart_qty();
     return $total_items;
 }
 
 /**
- * @deprecated This method has been deprecated. Use get_total_cart_sub_total() from WSPSC_Cart instead.
+ * @deprecated This method has been deprecated. Use get_total_cart_sub_total() from WPSC_Cart instead.
  * @return int Returns the total number of items in the cart.
  */
-function wpspc_get_total_cart_sub_total() {
-    $wspsc_cart = WSPSC_Cart::get_instance();
+function wpsc_get_total_cart_sub_total() {
+    $wspsc_cart = WPSC_Cart::get_instance();
     $total_sub_total = $wspsc_cart->get_total_cart_sub_total();
     return $total_sub_total;
 }
 
-function wspsc_clean_incomplete_old_cart_orders() {
+function wpsc_clean_incomplete_old_cart_orders() {
     //Empty any incomplete old cart orders (that are more than 48 hours old)
     global $wpdb;
     $specific_time = date('Y-m-d H:i:s', strtotime('-48 hours'));

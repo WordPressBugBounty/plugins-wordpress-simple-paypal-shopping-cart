@@ -2,7 +2,7 @@
 
 /*
   Plugin Name: WP Simple Shopping Cart
-  Version: 5.0.9
+  Version: 5.1.0
   Plugin URI: https://www.tipsandtricks-hq.com/wordpress-simple-paypal-shopping-cart-plugin-768
   Author: Tips and Tricks HQ, Ruhul Amin, mra13
   Author URI: https://www.tipsandtricks-hq.com/
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) { //Exit if accessed directly
 	exit;
 }
 
-define( 'WP_CART_VERSION', '5.0.9' );
+define( 'WP_CART_VERSION', '5.1.0' );
 define( 'WP_CART_FOLDER', dirname( plugin_basename( __FILE__ ) ) );
 define( 'WP_CART_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_CART_URL', plugins_url( '', __FILE__ ) );
@@ -44,8 +44,8 @@ include_once( WP_CART_PATH . 'includes/wpsc-utility-functions.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-misc-functions.php' );
 include_once( WP_CART_PATH . 'includes/classes/class-wpsc-persistent-msg.php' );
 include_once( WP_CART_PATH . 'includes/classes/class-coupon.php' );
-include_once( WP_CART_PATH . 'includes/class-wspsc-cart.php' );
-include_once( WP_CART_PATH . 'includes/class-wspsc-cart-item.php' );
+include_once( WP_CART_PATH . 'includes/class-wpsc-cart.php' );
+include_once( WP_CART_PATH . 'includes/class-wpsc-cart-item.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-misc-checkout-ajax-handler.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-paypal-ppcp-checkout-form-related.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-post-payment-related.php' );
@@ -57,15 +57,15 @@ include_once( WP_CART_PATH . 'includes/admin/wp_shopping_cart_tinymce.php' );
 require_once( WP_CART_PATH . 'includes/admin/wp_shopping_cart_admin_utils.php');
 include_once( WP_CART_PATH . 'includes/admin/wp_shopping_cart_menu_discounts.php' );
 include_once( WP_CART_PATH . 'includes/admin/wp_shopping_cart_menu_tools.php' );
-include_once( WP_CART_PATH . 'includes/classes/class.wspsc_blocks.php' );
+include_once( WP_CART_PATH . 'includes/classes/class.wpsc_blocks.php' );
 include_once( WP_CART_PATH . 'lib/paypal/class-tthq-paypal-main.php' );
 
-function always_show_cart_handler( $atts ) {
+function wpsc_always_show_cart_handler( $atts ) {
 	return print_wp_shopping_cart( $atts );
 }
 
-function show_wp_shopping_cart_handler( $atts ) {
-	$wspsc_cart = WSPSC_Cart::get_instance();
+function wpsc_show_wp_shopping_cart_handler( $atts ) {
+	$wspsc_cart = WPSC_Cart::get_instance();
 	$output = "";
 	if ( $wspsc_cart->cart_not_empty() ) {
 		$output = print_wp_shopping_cart( $atts );
@@ -75,7 +75,7 @@ function show_wp_shopping_cart_handler( $atts ) {
 
 // Reset cart option
 if ( isset( $_REQUEST["reset_wp_cart"] ) && ! empty( $_REQUEST["reset_wp_cart"] ) ) {
-	$wspsc_cart = WSPSC_Cart::get_instance();
+	$wspsc_cart = WPSC_Cart::get_instance();
 
 	//resets cart and cart_id after payment is made.
 	$wspsc_cart->reset_cart_after_txn();
@@ -89,7 +89,7 @@ if ( isset( $_REQUEST["reset_wp_cart"] ) && ! empty( $_REQUEST["reset_wp_cart"] 
 if ( get_option( 'wp_shopping_cart_reset_after_redirection_to_return_page' ) ) {
 	//TODO - remove this field altogether later. Cart will always be reset using query prameter on the thank you page.
 	if ( get_option( 'cart_return_from_paypal_url' ) == cart_current_page_url() ) {
-		$wspsc_cart = WSPSC_Cart::get_instance();
+		$wspsc_cart = WPSC_Cart::get_instance();
 		$wspsc_cart->reset_cart_after_txn();
 	}
 }
@@ -111,16 +111,16 @@ function process_allowed_shipping_countries($countries_str){
 
 /**
  * @deprecated: Reset the WPSC cart and associated session variables.
- * This function is deprecated and should no longer be used. Please use the 'WSPSC_Cart' class and its 'reset_cart()'
+ * This function is deprecated and should no longer be used. Please use the 'WPSC_Cart' class and its 'reset_cart()'
  * method to reset the cart and associated variables.
  */
 function reset_wp_cart() {
-	$wspsc_cart = WSPSC_Cart::get_instance();
+	$wspsc_cart = WPSC_Cart::get_instance();
 	$wspsc_cart->reset_cart();
 }
 
-function wpspc_cart_actions_handler() {
-	$wspsc_cart = WSPSC_Cart::get_instance();
+function wpsc_cart_actions_handler() {
+	$wspsc_cart = WPSC_Cart::get_instance();
 	$wspsc_cart->clear_cart_action_msg();
 
 	if ( isset( $_POST['addcart'] ) ) { 
@@ -253,7 +253,7 @@ function wpspc_cart_actions_handler() {
 
 		if ( $count == 1 ) {
 			//This is the first quantity of this item.
-			$wspsc_cart_item = new WSPSC_Cart_Item();
+			$wspsc_cart_item = new WPSC_Cart_Item();
 			$wspsc_cart_item->set_name( $post_wspsc_product );
 			$wspsc_cart_item->set_price( $price );
 			$wspsc_cart_item->set_price_orig( $price );
@@ -282,7 +282,7 @@ function wpspc_cart_actions_handler() {
 
 		//if cart is not yet created, save the returned products
 		//so it can be saved when cart is created
-		$products_discount = wpspsc_reapply_discount_coupon_if_needed(); //Re-apply coupon to the cart if necessary	
+		$products_discount = wpsc_reapply_discount_coupon_if_needed(); //Re-apply coupon to the cart if necessary
 		if ( is_array( $products_discount ) ) {
 			$products = $products_discount;
 		}
@@ -336,7 +336,7 @@ function wpspc_cart_actions_handler() {
 		sort( $products );
 		$wspsc_cart->add_items( $products );
 
-		wpspsc_reapply_discount_coupon_if_needed(); //Re-apply coupon to the cart if necessary
+		wpsc_reapply_discount_coupon_if_needed(); //Re-apply coupon to the cart if necessary
 
 		if ( $wspsc_cart->get_cart_id() ) {
 			$wspsc_cart->add_items( $products );
@@ -363,7 +363,7 @@ function wpspc_cart_actions_handler() {
 		}
 
 		//update the products in database after apply coupon
-		wpspsc_reapply_discount_coupon_if_needed(); //Re-apply coupon to the cart if necessary
+		wpsc_reapply_discount_coupon_if_needed(); //Re-apply coupon to the cart if necessary
 
 		if ( ! $wspsc_cart->get_items() ) {
 			$wspsc_cart->reset_cart();
@@ -389,7 +389,7 @@ function wpspc_cart_actions_handler() {
 		}
 		$coupon_code = isset( $_POST['wpspsc_coupon_code'] ) ? sanitize_text_field( $_POST['wpspsc_coupon_code'] ) : '';
 		//Apply discount and update cart products in database
-		wpspsc_apply_cart_discount( $coupon_code );
+		wpsc_apply_cart_discount( $coupon_code );
 		//Redirect to the anchor if the anchor option is enabled. This redirect needs to be handled using JS.
 		wpsc_js_redirect_if_using_anchor();
 	} else if ( isset( $_POST['wpsc_shipping_region_submit'] ) ) {
@@ -401,7 +401,7 @@ function wpspc_cart_actions_handler() {
 
 		$selected_shipping_region_str = isset( $_POST['wpsc_shipping_region'] ) ? sanitize_text_field( stripslashes($_POST['wpsc_shipping_region'] )) : '';
 
-		$wspsc_cart = WSPSC_Cart::get_instance();
+		$wspsc_cart = WPSC_Cart::get_instance();
 
 		// Check to make sure selected shipping region option is not tempered.
 		if (!check_shipping_region_str($selected_shipping_region_str)) {
@@ -483,7 +483,7 @@ function wpsc_get_current_page_url() {
 }
 
 function wp_cart_add_custom_field() {
-	$wspsc_cart = WSPSC_Cart::get_instance();
+	$wspsc_cart = WPSC_Cart::get_instance();
 	$collection_obj = WPSPSC_Coupons_Collection::get_instance();
 
 	$cart_id = $wspsc_cart->get_cart_id();
@@ -573,11 +573,11 @@ function wp_cart_add_read_form_javascript() {
 }
 
 /**
- * @deprecated This method has been DEPRECATED. Use cart_not_empty() from WSPSC_Cart instead.
+ * @deprecated This method has been DEPRECATED. Use cart_not_empty() from WPSC_Cart instead.
  * @return int Returns the total number of items in the cart.
  */
 function cart_not_empty() {
-	$wspsc_cart = WSPSC_Cart::get_instance();
+	$wspsc_cart = WPSC_Cart::get_instance();
 	return $wspsc_cart->cart_not_empty();
 }
 
@@ -621,47 +621,27 @@ function cart_current_page_url() {
 }
 
 /**
- * @deprecated This method has been deprecated. Use simple_cart_total() from WSPSC_Cart instead.
+ * @deprecated This method has been deprecated. Use simple_cart_total() from WPSC_Cart instead.
  */
 function simple_cart_total() {
-	$wspsc_cart = WSPSC_Cart::get_instance();
+	$wspsc_cart = WPSC_Cart::get_instance();
 	return $wspsc_cart->simple_cart_total();
 }
 
-function wp_paypal_shopping_cart_load_widgets() {
-	$widget_options = array( 'classname' => 'wp_paypal_shopping_cart_widgets', 'description' => __( "WP Paypal Shopping Cart Widget" ) );
-	wp_register_sidebar_widget( 'wp_paypal_shopping_cart_widgets', __( 'WP Paypal Shopping Cart' ), 'show_wp_simple_cart_widget', $widget_options );
-}
-
-function show_wp_simple_cart_widget( $args ) {
-	// outputs the content of the widget
-	extract( $args );
-
-	$cart_title = get_option( 'wp_cart_title' );
-	if ( empty( $cart_title ) ) {
-		$cart_title = __( "Shopping Cart", "wordpress-simple-paypal-shopping-cart" );
-	}
-
-	echo $before_widget;
-	echo $before_title . $cart_title . $after_title;
-	echo print_wp_shopping_cart();
-	echo $after_widget;
-}
-
-function wspsc_admin_side_enqueue_scripts() {
-	if ( isset( $_GET['page'] ) && $_GET['page'] == 'wspsc-discounts' ) { //simple paypal shopping cart discount page
+function wpsc_admin_side_enqueue_scripts() {
+	if ( isset( $_GET['page'] ) && $_GET['page'] == 'wspsc-discounts' ) { // wp simple shopping cart discount page
 		wp_enqueue_style( 'jquery-ui-style', WP_CART_URL . '/assets/jquery.ui.min.css', array(), WP_CART_VERSION );
 
-		wp_register_script( 'wpspsc-admin', WP_CART_URL . '/lib/wpspsc_admin_side.js', array( 'jquery', 'jquery-ui-datepicker' ) );
-		wp_enqueue_script( 'wpspsc-admin' );
+		wp_register_script( 'wpsc-admin', WP_CART_URL . '/lib/wpsc_admin_side.js', array( 'jquery', 'jquery-ui-datepicker' ) );
+		wp_enqueue_script( 'wpsc-admin' );
 	}
 }
 
-function wspsc_admin_side_styles() {
+function wpsc_admin_side_styles() {
 	wp_enqueue_style( 'wpsc-admin-style', WP_CART_URL . '/assets/wpsc-admin-styles.css', array(), WP_CART_VERSION );
 }
 
-function wspsc_front_side_enqueue_scripts() {
+function wpsc_front_side_enqueue_scripts() {
 	//jQuery
 	wp_enqueue_script( 'jquery' );
 	
@@ -669,21 +649,21 @@ function wspsc_front_side_enqueue_scripts() {
 	wp_enqueue_style( 'wpsc-style', WP_CART_URL . '/assets/wpsc-front-end-styles.css', array(), WP_CART_VERSION );
 
 	//Stripe checkout/library Related
-	wp_register_script( "wspsc.stripe", "https://js.stripe.com/v3/", array( "jquery" ), WP_CART_VERSION );
+	wp_register_script( "wpsc-stripe", "https://js.stripe.com/v3/", array( "jquery" ), WP_CART_VERSION );
 
 	$publishable_key = get_option( 'wp_shopping_cart_enable_sandbox' ) ? get_option( 'wpspc_stripe_test_publishable_key' ) : get_option( 'wpspc_stripe_live_publishable_key' );
 	$stripe_js_obj = "wspsc_stripe_js_obj";
-	wp_add_inline_script( "wspsc.stripe", "var " . $stripe_js_obj . " = Stripe('" . esc_js( $publishable_key ) . "'); var wspsc_ajax_url='" . esc_js( admin_url( 'admin-ajax.php' ) ) . "';" );
+	wp_add_inline_script( "wpsc-stripe", "var " . $stripe_js_obj . " = Stripe('" . esc_js( $publishable_key ) . "'); var wspsc_ajax_url='" . esc_js( admin_url( 'admin-ajax.php' ) ) . "';" );
 
-	wp_register_script( "wspsc-checkout-stripe", WP_CART_URL . "/assets/js/wspsc-checkout-stripe.js", array( "jquery", "wspsc.stripe"), WP_CART_VERSION);
+	wp_register_script( "wpsc-checkout-stripe", WP_CART_URL . "/assets/js/wpsc-checkout-stripe.js", array( "jquery", "wpsc-stripe"), WP_CART_VERSION);
 
 	//General scripts
-	wp_register_script( "wspsc-checkout-cart-script", WP_CART_URL . "/assets/js/wspsc-cart-script.js", array('wp-i18n'), WP_CART_VERSION, true);
+	wp_register_script( "wpsc-checkout-cart-script", WP_CART_URL . "/assets/js/wpsc-cart-script.js", array('wp-i18n'), WP_CART_VERSION, true);
 	$is_tnc_enabled = empty(get_option('wp_shopping_cart_enable_tnc')) ? 'false' : 'true' ;
-	wp_add_inline_script("wspsc-checkout-cart-script", "const wspscIsTncEnabled = " . $is_tnc_enabled .";" , 'before');
+	wp_add_inline_script("wpsc-checkout-cart-script", "const wspscIsTncEnabled = " . $is_tnc_enabled .";" , 'before');
 	
 	$is_shipping_region_enabled = empty(get_option('enable_shipping_by_region')) ? 'false' : 'true' ;
-	wp_add_inline_script("wspsc-checkout-cart-script", "const wspscIsShippingRegionEnabled = " . $is_shipping_region_enabled .";" , 'before');
+	wp_add_inline_script("wpsc-checkout-cart-script", "const wspscIsShippingRegionEnabled = " . $is_shipping_region_enabled .";" , 'before');
 	
 	if ($is_shipping_region_enabled) {
 		$configured_shipping_region_options  = get_option('wpsc_shipping_region_variations', array() );
@@ -691,15 +671,15 @@ function wspsc_front_side_enqueue_scripts() {
 		foreach ($configured_shipping_region_options as $region) {
 			$region_options[] = implode(':', array(strtolower($region['loc']), $region['type']));
 		}
-		wp_add_inline_script("wspsc-checkout-cart-script", "const wpscShippingRegionOptions = " . json_encode( $region_options ) .";" , 'before');
+		wp_add_inline_script("wpsc-checkout-cart-script", "const wpscShippingRegionOptions = " . json_encode( $region_options ) .";" , 'before');
 	}
 }
 
-function wpspc_plugin_install() {
-	wpspc_run_activation();
+function wpsc_plugin_install() {
+	wpsc_run_activation();
 }
 
-register_activation_hook( __FILE__, 'wpspc_plugin_install' );
+register_activation_hook( __FILE__, 'wpsc_plugin_install' );
 
 // Add the settings link
 function wp_simple_cart_add_settings_link( $links, $file ) {
@@ -712,8 +692,6 @@ function wp_simple_cart_add_settings_link( $links, $file ) {
 
 add_filter( 'plugin_action_links', 'wp_simple_cart_add_settings_link', 10, 2 );
 
-add_action( 'widgets_init', 'wp_paypal_shopping_cart_load_widgets' );
-
 add_action( 'init', 'wp_cart_init_handler' );
 add_action( 'admin_init', 'wp_cart_admin_init_handler' );
 
@@ -722,6 +700,6 @@ if ( ! is_admin() ) {
 }
 
 add_action( 'wp_head', 'wp_cart_add_read_form_javascript' );
-add_action( 'wp_enqueue_scripts', 'wspsc_front_side_enqueue_scripts' );
-add_action( 'admin_enqueue_scripts', 'wspsc_admin_side_enqueue_scripts' );
-add_action( 'admin_print_styles', 'wspsc_admin_side_styles' );
+add_action( 'wp_enqueue_scripts', 'wpsc_front_side_enqueue_scripts' );
+add_action( 'admin_enqueue_scripts', 'wpsc_admin_side_enqueue_scripts' );
+add_action( 'admin_print_styles', 'wpsc_admin_side_styles' );
