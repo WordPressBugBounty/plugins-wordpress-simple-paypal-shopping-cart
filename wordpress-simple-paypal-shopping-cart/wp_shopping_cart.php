@@ -2,7 +2,7 @@
 
 /*
   Plugin Name: WP Simple Shopping Cart
-  Version: 5.1.1
+  Version: 5.1.2
   Plugin URI: https://www.tipsandtricks-hq.com/wordpress-simple-paypal-shopping-cart-plugin-768
   Author: Tips and Tricks HQ, Ruhul Amin, mra13
   Author URI: https://www.tipsandtricks-hq.com/
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) { //Exit if accessed directly
 	exit;
 }
 
-define( 'WP_CART_VERSION', '5.1.1' );
+define( 'WP_CART_VERSION', '5.1.2' );
 define( 'WP_CART_FOLDER', dirname( plugin_basename( __FILE__ ) ) );
 define( 'WP_CART_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_CART_URL', plugins_url( '', __FILE__ ) );
@@ -44,6 +44,7 @@ include_once( WP_CART_PATH . 'includes/wpsc-utility-functions.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-misc-functions.php' );
 include_once( WP_CART_PATH . 'includes/classes/class-wpsc-persistent-msg.php' );
 include_once( WP_CART_PATH . 'includes/classes/class-coupon.php' );
+include_once( WP_CART_PATH . 'includes/classes/class.wpsc-email-handler.php' );
 include_once( WP_CART_PATH . 'includes/class-wpsc-cart.php' );
 include_once( WP_CART_PATH . 'includes/class-wpsc-cart-item.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-misc-checkout-ajax-handler.php' );
@@ -51,10 +52,12 @@ include_once( WP_CART_PATH . 'includes/wpsc-paypal-ppcp-checkout-form-related.ph
 include_once( WP_CART_PATH . 'includes/wpsc-post-payment-related.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-cart-functions.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-deprecated-functions.php' );
+include_once( WP_CART_PATH . 'includes/wpsc-manual-checkout-form-related.php' );
 include_once( WP_CART_PATH . 'includes/admin/wp_shopping_cart_orders.php' );
 include_once( WP_CART_PATH . 'includes/admin/wp_shopping_cart_menu_main.php' );
 include_once( WP_CART_PATH . 'includes/admin/wp_shopping_cart_tinymce.php' );
 require_once( WP_CART_PATH . 'includes/admin/wp_shopping_cart_admin_utils.php');
+require_once( WP_CART_PATH . 'includes/admin/wp_shopping_cart_admin_ajax.php');
 include_once( WP_CART_PATH . 'includes/admin/wp_shopping_cart_menu_discounts.php' );
 include_once( WP_CART_PATH . 'includes/admin/wp_shopping_cart_menu_tools.php' );
 include_once( WP_CART_PATH . 'includes/classes/class.wpsc_blocks.php' );
@@ -641,6 +644,10 @@ function wpsc_admin_side_enqueue_scripts() {
 		wp_register_script( 'wpsc-admin', WP_CART_URL . '/lib/wpsc_admin_side.js', array( 'jquery', 'jquery-ui-datepicker' ) );
 		wp_enqueue_script( 'wpsc-admin' );
 	}
+	
+	wp_register_script( 'wpsc-admin-scripts', WP_CART_URL . '/assets/js/wpsc-admin-scripts.js', array('wp-i18n'), WP_CART_VERSION);
+	wp_add_inline_script('wpsc-admin-scripts', 'var wpsc_ajaxUrl = "'.esc_url(admin_url( "admin-ajax.php" )).'";' , 'before');
+	wp_enqueue_script( 'wpsc-admin-scripts' );
 }
 
 function wpsc_admin_side_styles() {
@@ -670,7 +677,8 @@ function wpsc_front_side_enqueue_scripts() {
 	
 	$is_shipping_region_enabled = empty(get_option('enable_shipping_by_region')) ? 'false' : 'true' ;
 	wp_add_inline_script("wpsc-checkout-cart-script", "const wspscIsShippingRegionEnabled = " . $is_shipping_region_enabled .";" , 'before');
-	
+	wp_add_inline_script("wpsc-checkout-cart-script", 'var wpsc_ajaxUrl = "'.esc_url(admin_url( "admin-ajax.php" )).'";' , 'before');
+
 	if ($is_shipping_region_enabled) {
 		$configured_shipping_region_options  = get_option('wpsc_shipping_region_variations', array() );
 		$region_options  = array();
@@ -679,6 +687,8 @@ function wpsc_front_side_enqueue_scripts() {
 		}
 		wp_add_inline_script("wpsc-checkout-cart-script", "const wpscShippingRegionOptions = " . json_encode( $region_options ) .";" , 'before');
 	}
+
+	wp_register_script( "wpsc-checkout-manual", WP_CART_URL . "/assets/js/wpsc-checkout-manual.js", array( "wpsc-checkout-cart-script" ), WP_CART_VERSION);
 }
 
 function wpsc_plugin_install() {

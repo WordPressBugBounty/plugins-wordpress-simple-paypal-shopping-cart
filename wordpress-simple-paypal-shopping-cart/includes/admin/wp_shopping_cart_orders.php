@@ -33,8 +33,8 @@ function wpsc_create_orders_page() {
 }
 
 function wpsc_add_meta_boxes() {
-    add_meta_box('order_review_meta_box', __("Order Review", "wordpress-simple-paypal-shopping-cart"), 'wpsc_order_review_meta_box', 'wpsc_cart_orders', 'normal', 'high'
-    );
+    add_meta_box('order_review_meta_box', __("Order Review", "wordpress-simple-paypal-shopping-cart"), 'wpsc_order_review_meta_box', 'wpsc_cart_orders', 'normal', 'high');
+    add_meta_box('order_actions_meta_box', __("Order Actions", "wordpress-simple-paypal-shopping-cart"), 'wpsc_order_actions_meta_box', 'wpsc_cart_orders', 'side', 'high');
 }
 
 function wpsc_order_review_meta_box($wpsc_cart_orders) {
@@ -52,6 +52,7 @@ function wpsc_order_review_meta_box($wpsc_cart_orders) {
     $billing_address = get_post_meta($wpsc_cart_orders->ID, 'wpsc_billing_address', true);
     $phone = get_post_meta($wpsc_cart_orders->ID, 'wpspsc_phone', true);
     $email_sent_value = get_post_meta($wpsc_cart_orders->ID, 'wpsc_buyer_email_sent', true);
+	$order_status = get_post_meta($wpsc_cart_orders->ID, 'wpsc_order_status', true);
 
     $email_sent_field_msg = "No";
     if (!empty($email_sent_value)) {
@@ -65,7 +66,12 @@ function wpsc_order_review_meta_box($wpsc_cart_orders) {
     if (empty($tax_amount)){
 	    $tax_amount = "0.00"; // Show default 0.00 for backward compatibility.
     }
-
+	if ( strtolower($order_status) != 'paid'){
+		?>
+        <div class="wpsc-yellow-box">
+			<?php echo sprintf(__("Payment for this order has not been received yet. The current status of this order is: %s", "wordpress-simple-paypal-shopping-cart"), $order_status) ?>
+        </div>
+	<?php }
     ?>
     <table class="widefat" style="border: none;">
         <tr>
@@ -162,6 +168,43 @@ function wpsc_order_review_meta_box($wpsc_cart_orders) {
         do_action('wpsc_edit_order_pre_table_end', $order_id);
         ?>
     </table>
+    <?php
+}
+
+function wpsc_order_actions_meta_box( $wpsc_cart_orders ) {
+    $order_id = $wpsc_cart_orders->ID;
+	$order_status = get_post_meta($wpsc_cart_orders->ID, 'wpsc_order_status', true);
+    ?>
+    <div class="wpsc-order-actions">
+        <?php if (strtolower($order_status) != 'paid') { ?>
+            <div class="wpsc-order-action-wrap">
+                <a
+                    href="#"
+                    id="wpsc-mark-order-confirm-btn"
+                    class="button wpsc-order-action-btn"
+                    data-order-id="<?php esc_attr_e($order_id) ?>"
+                    data-nonce="<?php echo wp_create_nonce( "wpsc_mark_order_confirm" ) ?>"
+                >
+                    <span class="dashicons dashicons-yes wpsc-order-action-btn-icon"></span>
+                    <span ><?php _e("Mark This Order as Paid", "wordpress-simple-paypal-shopping-cart") ?></span>
+                </a>
+            </div>
+        <?php } ?>
+
+        <div class="wpsc-order-action-wrap">
+            <a
+                href="#"
+                id="wpsc-resend-sale-notification-email-btn"
+                class="button wpsc-order-action-btn"
+                data-order-id="<?php esc_attr_e($order_id) ?>"
+                data-nonce="<?php echo wp_create_nonce( "wpsc_resend_sale_notification_email" ) ?>"
+                title="<?php _e( "Mark this order as paid and send purchase notification email to buyer.", "wordpress-simple-paypal-shopping-cart") ?>"
+            >
+                <span class="dashicons dashicons-email wpsc-order-action-btn-icon"></span>
+                <span><?php _e("Resend Sale Notification Email", "wordpress-simple-paypal-shopping-cart") ?></span>
+            </a>
+        </div>
+    </div>
     <?php
 }
 
@@ -264,7 +307,13 @@ function wpsc_populate_order_columns($column, $post_id) {
         echo esc_attr($total_amount);
     } else if ('wpsc_order_status' == $column) {
         $status = get_post_meta($post_id, 'wpsc_order_status', true);
-        echo esc_attr($status);
+        if (strtolower($status) != 'paid'){
+            echo '<div style="margin-top: 5px;">';
+            echo '<span style="background-color: #FFFFE0; padding: 5px 10px; border-radius: 4px; border: 1px solid #E6DB55;">'. esc_attr($status) .'</span>';
+            echo '</div>';
+        } else {
+            echo esc_attr($status);
+        }
     }
 }
 
@@ -331,6 +380,7 @@ function wpsc_get_formatted_payment_gateway_name($payment_gateway){
         'paypal_ppcp' => 'PayPal PPCP',
         'paypal_standard' => 'PayPal Standard',
         'paypal_smart_checkout' => 'PayPal Smart Checkout',
+        'manual' => 'Manual Checkout',
     );
 
     if (array_key_exists($payment_gateway, $gateways)) {
