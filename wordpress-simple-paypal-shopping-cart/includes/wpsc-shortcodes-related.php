@@ -89,11 +89,6 @@ function print_wp_cart_button_for_product( $name, $price, $shipping = 0, $var1 =
 	isset( $atts['item_number'] ) ? $item_num = $atts['item_number'] : $item_num = '';
 	$replacement .= '<input type="hidden" name="item_number" value="' . esc_attr($item_num) . '" />';
 
-	if ( isset( $atts['file_url'] ) ) {
-		$file_url = $atts['file_url'];
-		$file_url = base64_encode( $file_url );
-		$replacement .= '<input type="hidden" name="file_url" value="' . esc_attr($file_url) . '" />';
-	}
 	if ( isset( $atts['thumbnail'] ) ) {
 		$replacement .= '<input type="hidden" name="thumbnail" value="' . esc_url($atts['thumbnail']) . '" />';
 	}
@@ -109,13 +104,21 @@ function print_wp_cart_button_for_product( $name, $price, $shipping = 0, $var1 =
 		$p_key = uniqid( '', true );
 		update_option( 'wspsc_private_key_one', $p_key );
 	}
-	$hash_one = md5( $p_key . '|' . $price . '|' . $name_before_htmlentity );
-	$replacement .= '<input type="hidden" name="hash_one" value="' . $hash_one . '" />';
-
-	$hash_two = md5( $p_key . '|' . $shipping . '|' . $name_before_htmlentity );
-	$replacement .= '<input type="hidden" name="hash_two" value="' . $hash_two . '" />';
 
 	$replacement .= '</form>';
+
+	// Prepare product data to save in dynamic products.
+	$dynamic_product_data = array(
+		'name' => $name,
+		'price' => $price,
+		'shipping' => $shipping,
+	);
+	if ( isset( $atts['file_url'] ) ) {
+		$dynamic_product_data['file_url'] = $atts['file_url'];
+	}
+
+	$product_key = WPSC_Dynamic_Products::generate_product_key($name, $price);
+	WPSC_Dynamic_Products::get_instance()->save($product_key, $dynamic_product_data);
 
 	$cart_id = WPSC_Cart::get_instance()->get_cart_id();
 	if (!empty($cart_id)){

@@ -2,7 +2,7 @@
 
 /*
   Plugin Name: WP Simple Shopping Cart
-  Version: 5.1.2
+  Version: 5.1.3
   Plugin URI: https://www.tipsandtricks-hq.com/wordpress-simple-paypal-shopping-cart-plugin-768
   Author: Tips and Tricks HQ, Ruhul Amin, mra13
   Author URI: https://www.tipsandtricks-hq.com/
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) { //Exit if accessed directly
 	exit;
 }
 
-define( 'WP_CART_VERSION', '5.1.2' );
+define( 'WP_CART_VERSION', '5.1.3' );
 define( 'WP_CART_FOLDER', dirname( plugin_basename( __FILE__ ) ) );
 define( 'WP_CART_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_CART_URL', plugins_url( '', __FILE__ ) );
@@ -45,6 +45,7 @@ include_once( WP_CART_PATH . 'includes/wpsc-misc-functions.php' );
 include_once( WP_CART_PATH . 'includes/classes/class-wpsc-persistent-msg.php' );
 include_once( WP_CART_PATH . 'includes/classes/class-coupon.php' );
 include_once( WP_CART_PATH . 'includes/classes/class.wpsc-email-handler.php' );
+include_once( WP_CART_PATH . 'includes/classes/class-wpsc-dynamic-products.php' );
 include_once( WP_CART_PATH . 'includes/class-wpsc-cart.php' );
 include_once( WP_CART_PATH . 'includes/class-wpsc-cart-item.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-misc-checkout-ajax-handler.php' );
@@ -157,27 +158,32 @@ function wpsc_cart_actions_handler() {
 		$post_item_number = isset( $_POST['item_number'] ) ? sanitize_text_field( $_POST['item_number'] ) : '';
 		$post_cart_link = isset( $_POST['cartLink'] ) ? esc_url_raw( sanitize_text_field( urldecode( $_POST['cartLink'] ) ) ) : '';
 		$post_stamp_pdf = isset( $_POST['stamp_pdf'] ) ? sanitize_text_field( $_POST['stamp_pdf'] ) : '';
-		$post_encoded_file_val = isset( $_POST['file_url'] ) ? sanitize_text_field( $_POST['file_url'] ) : '';
+
 		$post_thumbnail = isset( $_POST['thumbnail'] ) ? esc_url_raw( sanitize_text_field( $_POST['thumbnail'] ) ) : '';
 		$digital_flag = isset( $_POST['digital'] ) ? esc_url_raw( sanitize_text_field( $_POST['digital'] ) ) : '';
 
+		//Get the product key for the dynamic product.
+        $wpsc_dynamic_products = WPSC_Dynamic_Products::get_instance();
+		$posted_price = isset( $_POST['price'] ) ? sanitize_text_field( $_POST['price'] ) : '';
+        $wpsc_product_key = $wpsc_dynamic_products::generate_product_key($post_wspsc_product, $posted_price);
+
+		//Get the file url for the dynamic product (if any)
+        $post_file_url =$wpsc_dynamic_products->get_data_by_param($wpsc_product_key, 'file_url');
+
 		//$post_wspsc_tmp_name = isset( $_POST[ 'product_tmp' ] ) ? stripslashes( sanitize_text_field( $_POST[ 'product_tmp' ] ) ) : '';
 		//The product name is encoded and decoded to avoid any special characters in the product name creating hashing issues
-		$post_wspsc_tmp_name_two = html_entity_decode($_POST['product_tmp_two']);
-		$post_wspsc_tmp_name_two = stripslashes( sanitize_text_field( $post_wspsc_tmp_name_two ) );
 
 		//Sanitize and validate price
 		if ( isset( $_POST['price'] ) ) {
 			$price = sanitize_text_field( $_POST['price'] );
-			$hash_once_p = sanitize_text_field( $_POST['hash_one'] );
-			$p_key = get_option( 'wspsc_private_key_one' );
-			$hash_one_cm = md5( $p_key . '|' . $price . '|' . $post_wspsc_tmp_name_two );
 
 			if ( get_option( 'wspsc_disable_price_check_add_cart' ) ) {
 				//This site has disabled the price check for add cart button.
 				//Do not perform the price check for this site since the site admin has indicated that he does not want to do it on this site.
 			} else {
-				if ( $hash_once_p != $hash_one_cm ) { //Security check failed. Price field has been tampered. Fail validation.
+				$price_from_db = $wpsc_dynamic_products->get_data_by_param($wpsc_product_key,'price');
+				if ( $price != $price_from_db ) {
+					//Security check failed. Price field may have been tampered. Fail the validation.
 					$error_msg = '<p>Error! The price field may have been tampered. Security check failed.</p>';
 					$error_msg .= '<p>If this site uses any caching, empty the cache then try again.</p>';
 					$error_msg .= "<p>If the issue persists go to the settings menu of the plugin and select/tick the 'Disable Price Check for Add to Cart' checkbox and save it.</p>";
@@ -198,15 +204,13 @@ function wpsc_cart_actions_handler() {
 		//Sanitize and validate shipping price
 		if ( isset( $_POST['shipping'] ) ) {
 			$shipping = sanitize_text_field( $_POST['shipping'] );
-			$hash_two_val = sanitize_text_field( $_POST['hash_two'] );
-			$p_key = get_option( 'wspsc_private_key_one' );
-			$hash_two_cm = md5( $p_key . '|' . $shipping . '|' . $post_wspsc_tmp_name_two );
 
 			if ( get_option( 'wspsc_disable_price_check_add_cart' ) ) {
 				//This site has disabled the price check for add cart button.
 				//Do not perform the price check for this site since the site admin has indicated that he does not want to do it on this site.
 			} else {
-				if ( $hash_two_val != $hash_two_cm ) { //Shipping validation failed
+                $shipping_from_db = $wpsc_dynamic_products->get_data_by_param($wpsc_product_key,'shipping');
+				if ( $shipping != $shipping_from_db ) { //Shipping validation failed
 					wp_die( 'Error! The shipping price validation failed.' );
 				}
 			}
@@ -265,8 +269,8 @@ function wpsc_cart_actions_handler() {
 			$wspsc_cart_item->set_cart_link( $post_cart_link );
 			$wspsc_cart_item->set_item_number( $post_item_number );
 			$wspsc_cart_item->set_digital_flag( $digital_flag );
-			if ( ! empty( $post_encoded_file_val ) ) {
-				$wspsc_cart_item->set_file_url( $post_encoded_file_val );
+			if ( ! empty( $post_file_url ) ) {
+				$wspsc_cart_item->set_file_url( $post_file_url );
 			}
 			if ( ! empty( $post_thumbnail ) ) {
 				$wspsc_cart_item->set_thumbnail( $post_thumbnail );
@@ -647,6 +651,10 @@ function wpsc_admin_side_enqueue_scripts() {
 	
 	wp_register_script( 'wpsc-admin-scripts', WP_CART_URL . '/assets/js/wpsc-admin-scripts.js', array('wp-i18n'), WP_CART_VERSION);
 	wp_add_inline_script('wpsc-admin-scripts', 'var wpsc_ajaxUrl = "'.esc_url(admin_url( "admin-ajax.php" )).'";' , 'before');
+	wp_localize_script( 'wpsc-admin-scripts', 'wpscAdminScriptMsg', array(
+        'resendSaleNotificationEmailMsg' => __('Do you really want to resend sale notification email?', 'wordpress-simple-paypal-shopping-cart'),
+        'confirmMarkOrderPaidMsg' => __("Are you sure you want to mark this order as 'Paid'? This indicates that payment has been received for the order.", "wordpress-simple-paypal-shopping-cart"),
+    ));
 	wp_enqueue_script( 'wpsc-admin-scripts' );
 }
 
@@ -674,10 +682,14 @@ function wpsc_front_side_enqueue_scripts() {
 	wp_register_script( "wpsc-checkout-cart-script", WP_CART_URL . "/assets/js/wpsc-cart-script.js", array('wp-i18n'), WP_CART_VERSION, true);
 	$is_tnc_enabled = empty(get_option('wp_shopping_cart_enable_tnc')) ? 'false' : 'true' ;
 	wp_add_inline_script("wpsc-checkout-cart-script", "const wspscIsTncEnabled = " . $is_tnc_enabled .";" , 'before');
-	
+
 	$is_shipping_region_enabled = empty(get_option('enable_shipping_by_region')) ? 'false' : 'true' ;
 	wp_add_inline_script("wpsc-checkout-cart-script", "const wspscIsShippingRegionEnabled = " . $is_shipping_region_enabled .";" , 'before');
 	wp_add_inline_script("wpsc-checkout-cart-script", 'var wpsc_ajaxUrl = "'.esc_url(admin_url( "admin-ajax.php" )).'";' , 'before');
+	wp_localize_script("wpsc-checkout-cart-script", 'wpscCheckoutCartMsg', array(
+        'tncError' => __("You must accept the terms before you can proceed.", "wordpress-simple-paypal-shopping-cart"),
+        'shippingRegionError' => __("You must select a shipping region before you can proceed.", "wordpress-simple-paypal-shopping-cart"),
+    ));
 
 	if ($is_shipping_region_enabled) {
 		$configured_shipping_region_options  = get_option('wpsc_shipping_region_variations', array() );
@@ -689,8 +701,18 @@ function wpsc_front_side_enqueue_scripts() {
 	}
 
 	wp_register_script( "wpsc-checkout-manual", WP_CART_URL . "/assets/js/wpsc-checkout-manual.js", array( "wpsc-checkout-cart-script" ), WP_CART_VERSION);
+	wp_localize_script("wpsc-checkout-manual", 'wpscCheckoutManualMsg', array(
+		'requiredError' => __("This field is required", "wordpress-simple-paypal-shopping-cart"),
+        'emailError' => __("The email address is not valid", "wordpress-simple-paypal-shopping-cart"),
+	));
 }
 
+//Handle the plugins loaded action
+function wp_cart_handle_plugins_loaded() {
+	wpsc_register_shortcodes();
+}
+
+//Hanlde the activation of the plugin
 function wpsc_plugin_install() {
 	wpsc_run_activation();
 }
@@ -710,10 +732,7 @@ add_filter( 'plugin_action_links', 'wp_simple_cart_add_settings_link', 10, 2 );
 
 add_action( 'init', 'wp_cart_init_handler' );
 add_action( 'admin_init', 'wp_cart_admin_init_handler' );
-
-if ( ! is_admin() ) {
-	add_filter( 'widget_text', 'do_shortcode' );
-}
+add_action( 'plugins_loaded', 'wp_cart_handle_plugins_loaded' );
 
 add_action( 'wp_head', 'wp_cart_add_read_form_javascript' );
 add_action( 'wp_enqueue_scripts', 'wpsc_front_side_enqueue_scripts' );

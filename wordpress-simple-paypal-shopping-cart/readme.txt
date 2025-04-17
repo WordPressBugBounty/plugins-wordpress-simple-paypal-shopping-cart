@@ -3,8 +3,8 @@ Contributors: Tips and Tricks HQ, Ruhul Amin, wptipsntricks, mbrsolution, mra13
 Donate link: https://www.tipsandtricks-hq.com
 Tags: cart, shopping cart, WordPress shopping cart, WP Simple Shopping Cart, sell, sell products, stripe, shop, e-commerce, wordpress ecommerce, wordpress store, store, PayPal cart widget, sell digital products, sell service, digital downloads, paypal, paypal cart,
 Requires at least: 6.0
-Tested up to: 6.7
-Stable tag: 5.1.2
+Tested up to: 6.8
+Stable tag: 5.1.3
 License: GPLv2 or later
 
 Very easy to use Simple WordPress Shopping Cart Plugin. Great for selling products online in one click from your WordPress site.
@@ -231,6 +231,13 @@ Visit the plugin site at https://www.tipsandtricks-hq.com/wordpress-simple-paypa
 None
 
 == Changelog ==
+
+= 5.1.3 =
+- Updated the German language file. Thanks to Roland Stumpp for submitting the updated file.
+- New dynamic product feature added to protect the download file url.
+- The add to cart button's price validation code has been improved.
+- Fixed a 'nonce' field issue with the manual checkout feature.
+- Updated translatable strings in the JavaScript file.
 
 = 5.1.2 =
 - Added Manual/offline Checkout feature. [view documentation](https://www.tipsandtricks-hq.com/ecommerce/simple-shopping-cart-enabling-manual-offline-checkout)
