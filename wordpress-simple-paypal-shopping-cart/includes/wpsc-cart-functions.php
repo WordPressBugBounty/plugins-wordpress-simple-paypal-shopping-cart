@@ -61,7 +61,7 @@ function print_wp_shopping_cart( $args = array() ) {
 	}
 
 	$return_url = add_query_arg( 'reset_wp_cart', '1', $return );
-	$return_url = add_query_arg( 'order_id', WPSC_Cart::get_instance()->get_cart_id(), $return_url );
+	$return_url = add_query_arg( 'cart_id', WPSC_Cart::get_instance()->get_cart_id(), $return_url );
 	$return_url = add_query_arg('_wpnonce', wp_create_nonce('wpsc_thank_you_nonce_action'), $return_url);
 
 	$urls .= '<input type="hidden" name="return" value="' . $return_url . '" />';
@@ -557,7 +557,7 @@ function print_wp_shopping_cart( $args = array() ) {
                                         { 'action': 'wpsc_process_pp_smart_checkout', 'wpspsc_payment_data': data })
                                         .done(function (result) {
                                             if (result.success) {
-                                                window.location.href = '<?php echo esc_js( $return_url ); ?>';
+                                                window.location.href = '<?php echo esc_url_raw( $return_url ); ?>';
                                             } else {
                                                 console.log(result);
                                                 alert(result.errMsg)
@@ -647,8 +647,17 @@ function print_wp_shopping_cart( $args = array() ) {
 			wp_enqueue_script( "wpsc-checkout-stripe" );
 
 			$output .= '<form class="wspsc-stripe-payment-form" >';
-			$stripe_checkout_button_img_src = WP_CART_URL . '/images/' . ( __( 'stripe_checkout_EN.gif', 'wordpress-simple-paypal-shopping-cart' ) );
 
+			//Ensure the public key has been configured for this mode.
+			$wpsc_stripe_public_key = get_option( 'wp_shopping_cart_enable_sandbox' ) ? get_option( 'wpspc_stripe_test_publishable_key' ) : get_option( 'wpspc_stripe_live_publishable_key' );
+			if ( empty( $wpsc_stripe_public_key ) ) {
+				//public key is not set. Show error message.
+				//This prevents the user not knowing that the public key is not configured and the Stripe checkout form is malfunctioning.
+				$output .= '<div class="wpsc-error-message">' . __( 'Error: Stripe public key is not configured. Please set it in the Stripe Settings tab.', 'wordpress-simple-paypal-shopping-cart' ) . '</div>';
+			}
+
+			//Stripe checkout button
+			$stripe_checkout_button_img_src = WP_CART_URL . '/images/' . ( __( 'stripe_checkout_EN.gif', 'wordpress-simple-paypal-shopping-cart' ) );
 			if ( get_option( 'wpspc_stripe_button_image_url' ) ) {
 				$stripe_checkout_button_img_src = get_option( 'wpspc_stripe_button_image_url' );
 			}
@@ -664,7 +673,7 @@ function print_wp_shopping_cart( $args = array() ) {
 			$extra_stripe_fields = apply_filters( 'wpsc_cart_extra_stripe_fields', $extra_stripe_fields ); //Can be used to add extra PayPal hidden input fields for the cart checkout
 
             $output .= $extra_stripe_fields;
-			$output .= '<div class="wpspsc-spinner-cont" id="wpspsc_spinner_' . esc_js( $wspsc_Cart->get_cart_id() ) . '">
+			$output .= '<div class="wpspsc-spinner-cont" id="wpspsc_spinner_' . esc_js( $wspsc_Cart->get_cart_cpt_id() ) . '">
 						<div class="wpspsc-spinner"></div>
 					</div>';
 			$output .= '</form>';

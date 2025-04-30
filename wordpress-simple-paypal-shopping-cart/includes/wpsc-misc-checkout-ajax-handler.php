@@ -22,6 +22,7 @@ function wpsc_stripe_create_checkout_session() {
 	$wspsc_cart->calculate_cart_totals_and_postage();
 
 	$cart_id = $wspsc_cart->get_cart_id();
+	$cart_cpt_id = $wspsc_cart->get_cart_cpt_id();
 	$currency = get_option( 'cart_payment_currency' );
 	$symbol = get_option( 'cart_currency_symbol' );
 	$return_url = get_option( 'cart_return_from_paypal_url' );
@@ -282,7 +283,7 @@ function wpsc_manual_payment_checkout(){
 	$return_url = get_option('cart_return_from_paypal_url');
 	$return_url = add_query_arg(
 		array(
-			'order_id' => $wpsc_manual_checkout->data['post_id'],
+			'cart_id' => $wpsc_manual_checkout->data['cart_id'],
 			'_wpnonce' => wp_create_nonce('wpsc_thank_you_nonce_action'),
 		),
 		$return_url

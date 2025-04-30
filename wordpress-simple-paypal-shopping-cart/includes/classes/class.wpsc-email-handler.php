@@ -42,7 +42,7 @@ class WPSC_Email_Handler {
 
     public static function send_buyer_sale_notification_email($order_id){
         $wpsc_cart = WPSC_Cart::get_instance();
-        $wpsc_cart->set_cart_id($order_id);
+        $wpsc_cart->set_cart_cpt_id($order_id);
         $cart_items = $wpsc_cart->get_items();
         
         $order_data = WPSC_Email_Handler::process_order_data_for_email($order_id);
@@ -128,7 +128,7 @@ class WPSC_Email_Handler {
 				wp_mail( $notify_email, $seller_email_subject, $seller_email_body, $headers );
 				wpsc_log_payment_debug( 'Manual Checkout seller notification email successfully sent to: ' . $notify_email, true );
 			} else {
-				wpsc_log_payment_debug( 'Manual Checkout seller notification email could not be sent to: '. $buyer_email, false );
+				wpsc_log_payment_debug( 'Manual Checkout seller notification email could not be sent to: '. $notify_email, false );
 			}
 		}
 	}

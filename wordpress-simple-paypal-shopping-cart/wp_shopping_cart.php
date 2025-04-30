@@ -2,7 +2,7 @@
 
 /*
   Plugin Name: WP Simple Shopping Cart
-  Version: 5.1.3
+  Version: 5.1.4
   Plugin URI: https://www.tipsandtricks-hq.com/wordpress-simple-paypal-shopping-cart-plugin-768
   Author: Tips and Tricks HQ, Ruhul Amin, mra13
   Author URI: https://www.tipsandtricks-hq.com/
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) { //Exit if accessed directly
 	exit;
 }
 
-define( 'WP_CART_VERSION', '5.1.3' );
+define( 'WP_CART_VERSION', '5.1.4' );
 define( 'WP_CART_FOLDER', dirname( plugin_basename( __FILE__ ) ) );
 define( 'WP_CART_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_CART_URL', plugins_url( '', __FILE__ ) );
@@ -165,13 +165,15 @@ function wpsc_cart_actions_handler() {
 		//Get the product key for the dynamic product.
         $wpsc_dynamic_products = WPSC_Dynamic_Products::get_instance();
 		$posted_price = isset( $_POST['price'] ) ? sanitize_text_field( $_POST['price'] ) : '';
-        $wpsc_product_key = $wpsc_dynamic_products::generate_product_key($post_wspsc_product, $posted_price);
+
+		$post_wspsc_tmp_name = isset( $_POST[ 'product_tmp' ] ) ? stripslashes( sanitize_text_field( $_POST[ 'product_tmp' ] ) ) : '';
+		//The product name is encoded and decoded to avoid any special characters in the product name creating hashing issues
+
+        // Generate the key using 'product_tmp' post data instead of 'wspsc_product' post data, because the 'wspsc_product' gets changed for variation products.
+		$wpsc_product_key = $wpsc_dynamic_products::generate_product_key($post_wspsc_tmp_name, $posted_price);
 
 		//Get the file url for the dynamic product (if any)
-        $post_file_url =$wpsc_dynamic_products->get_data_by_param($wpsc_product_key, 'file_url');
-
-		//$post_wspsc_tmp_name = isset( $_POST[ 'product_tmp' ] ) ? stripslashes( sanitize_text_field( $_POST[ 'product_tmp' ] ) ) : '';
-		//The product name is encoded and decoded to avoid any special characters in the product name creating hashing issues
+		$post_file_url =$wpsc_dynamic_products->get_data_by_param($wpsc_product_key, 'file_url');
 
 		//Sanitize and validate price
 		if ( isset( $_POST['price'] ) ) {
@@ -327,6 +329,7 @@ function wpsc_cart_actions_handler() {
 
 		$post_wspsc_product = isset( $_POST['wspsc_product'] ) ? stripslashes( sanitize_text_field( $_POST['wspsc_product'] ) ) : '';
 		$post_quantity = isset( $_POST['quantity'] ) ? sanitize_text_field( $_POST['quantity'] ) : '';
+		$post_quantity = absint($post_quantity); // To make sure we only receive positive integer.
 		if ( ! is_numeric( $post_quantity ) ) {
 			wp_die( 'Error! The quantity value must be numeric.' );
 		}
@@ -493,6 +496,7 @@ function wp_cart_add_custom_field() {
 	$wspsc_cart = WPSC_Cart::get_instance();
 	$collection_obj = WPSPSC_Coupons_Collection::get_instance();
 
+	$cart_cpt_id = $wspsc_cart->get_cart_cpt_id();
 	$cart_id = $wspsc_cart->get_cart_id();
 	if ( ! $cart_id ) {
 		echo '<div class="wspsc_yellow_box">Error! cart ID is missing. cannot add custom field values.</div>';
@@ -526,9 +530,9 @@ function wp_cart_add_custom_field() {
 		}
 	}
 
-	if ( $collection_obj->get_applied_coupon_code( $wspsc_cart->get_cart_id() ) ) {
+	if ( $collection_obj->get_applied_coupon_code( $cart_cpt_id ) ) {
 		$name = "coupon_code";
-		$value = $collection_obj->get_applied_coupon_code( $wspsc_cart->get_cart_id() );
+		$value = $collection_obj->get_applied_coupon_code( $cart_cpt_id );
 		$custom_field_val = wpc_append_values_to_custom_field( $name, $value );
 	}
 
@@ -540,7 +544,7 @@ function wp_cart_add_custom_field() {
 	$custom_field_val = apply_filters( 'wpsc_cart_custom_field_value', $custom_field_val );
 
 	//Save the custom field values to the order post meta.
-	update_post_meta( $cart_id, 'wpsc_cart_custom_values', $custom_field_val );
+	update_post_meta( $cart_cpt_id, 'wpsc_cart_custom_values', $custom_field_val );
 
 	$custom_field_val = urlencode( $custom_field_val ); //URL encode the custom field value so nothing gets lost when it is passed around.	
 	$output = '<input type="hidden" name="custom" value="' . $custom_field_val . '" />';
