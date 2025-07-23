@@ -234,6 +234,7 @@ text-decoration: none;
 
 .wpsc-order-shipping-address,
 .wpsc-order-shipping-region,
+.wpsc-order-tax-region,
 .wpsc-order-billing-address {
     padding: 15px;
     border: 1px solid lightgray;
@@ -256,7 +257,7 @@ text-decoration: none;
     grid-template-columns: repeat(2, min-content);
     grid-template-areas:
                         "fname lname"
-                        "email email";
+                        "email phone";
     column-gap: 10px;
     row-gap: 10px;
 }
@@ -264,6 +265,7 @@ text-decoration: none;
 .wpsc-manual-payment-form-basic-fields div:nth-child(1){ grid-area: fname;}
 .wpsc-manual-payment-form-basic-fields div:nth-child(2){ grid-area: lname;}
 .wpsc-manual-payment-form-basic-fields div:nth-child(3){ grid-area: email;}
+.wpsc-manual-payment-form-basic-fields div:nth-child(4){ grid-area: phone;}
 
 .wpsc-manual-payment-form-address-fields{
     margin-top: 10px;

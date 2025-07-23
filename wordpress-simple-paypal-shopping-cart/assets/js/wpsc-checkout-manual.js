@@ -83,17 +83,23 @@ class WpscManualCheckout {
             isValidationSuccess = false;
         }
 
+        // Validate Tax Region
+        if (!wpsc_validateTaxRegion(paymentForm)) {
+            isValidationSuccess = false;
+        }
+
         // Check if there is any validation error,
         if (!isValidationSuccess){
             return;
         }
 
         // Get checkout form input values.
-        const payload = JSON.stringify({
+        const payload = {
             nonce: formData.get('wpsc_manual_payment_form_nonce'),
             first_name: formData.get('wpsc_manual_payment_form_fname'),
             last_name: formData.get('wpsc_manual_payment_form_lname'),
             email: formData.get('wpsc_manual_payment_form_email'),
+            phone: formData.get('wpsc_manual_payment_form_phone'),
             address: {
                 street: formData.get('wpsc_manual_payment_form_street'),
                 city: formData.get('wpsc_manual_payment_form_city'),
@@ -101,9 +107,16 @@ class WpscManualCheckout {
                 state: formData.get('wpsc_manual_payment_form_state'),
                 postal_code: formData.get('wpsc_manual_payment_form_postal_code'),
             },
-        })
+        }
 
         const ajaxUrl = wpsc_ajaxUrl + '?action=wpsc_manual_payment_checkout';
+
+        document.dispatchEvent(new CustomEvent('wpscOnManualCheckoutSubmit', {
+            detail: {
+                paymentForm,
+                payload,
+            }
+        }));
 
         this.toggleLoading(); // Turn on loading animation.
 
@@ -113,7 +126,7 @@ class WpscManualCheckout {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: payload,
+                body: JSON.stringify(payload),
             })
 
             const result = await response.json();

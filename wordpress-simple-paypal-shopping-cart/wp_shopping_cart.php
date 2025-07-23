@@ -2,7 +2,7 @@
 
 /*
   Plugin Name: WP Simple Shopping Cart
-  Version: 5.1.4
+  Version: 5.1.5
   Plugin URI: https://www.tipsandtricks-hq.com/wordpress-simple-paypal-shopping-cart-plugin-768
   Author: Tips and Tricks HQ, Ruhul Amin, mra13
   Author URI: https://www.tipsandtricks-hq.com/
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) { //Exit if accessed directly
 	exit;
 }
 
-define( 'WP_CART_VERSION', '5.1.4' );
+define( 'WP_CART_VERSION', '5.1.5' );
 define( 'WP_CART_FOLDER', dirname( plugin_basename( __FILE__ ) ) );
 define( 'WP_CART_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_CART_URL', plugins_url( '', __FILE__ ) );
@@ -166,6 +166,10 @@ function wpsc_cart_actions_handler() {
         $wpsc_dynamic_products = WPSC_Dynamic_Products::get_instance();
 		$posted_price = isset( $_POST['price'] ) ? sanitize_text_field( $_POST['price'] ) : '';
 
+        $applied_variation1 = isset( $_POST['variation1'] ) ? sanitize_text_field( $_POST['variation1'] ) : '';
+		$applied_variation2 = isset( $_POST['variation2'] ) ? sanitize_text_field( $_POST['variation2'] ) : '';
+        $applied_variation3 = isset( $_POST['variation3'] ) ? sanitize_text_field( $_POST['variation3'] ) : '';
+
 		$post_wspsc_tmp_name = isset( $_POST[ 'product_tmp' ] ) ? stripslashes( sanitize_text_field( $_POST[ 'product_tmp' ] ) ) : '';
 		//The product name is encoded and decoded to avoid any special characters in the product name creating hashing issues
 
@@ -198,6 +202,24 @@ function wpsc_cart_actions_handler() {
 			if ( ! is_numeric( $price ) ) { //Price validation failed
 				wp_die( 'Error! The price validation failed. The value must be numeric.' );
 			}
+
+            $variation_price = 0;
+            if (!empty($applied_variation1)){
+	            $variation_price += $wpsc_dynamic_products->get_variation_price($wpsc_product_key, 'var1', $applied_variation1);
+            }
+			if (!empty($applied_variation2)){
+				$variation_price += $wpsc_dynamic_products->get_variation_price($wpsc_product_key, 'var2', $applied_variation2);
+			}
+			if (!empty($applied_variation3)){
+				$variation_price += $wpsc_dynamic_products->get_variation_price($wpsc_product_key, 'var3', $applied_variation3);
+			}
+
+            $price += $variation_price;
+
+            if (floatval($price) < 0){
+                wp_die(__('Error! Product price amount cannot be negative.', "wordpress-simple-paypal-shopping-cart"));
+            }
+
 			//At this stage the price amt has already been sanitized and validated.
 		} else {
 			wp_die( 'Error! Missing price value. The price must be set.' );
@@ -427,6 +449,32 @@ function wpsc_cart_actions_handler() {
         $wspsc_cart->save_cart_to_postmeta();
 
 		wpsc_js_redirect_if_using_anchor();
+	} else if ( isset( $_POST['wpsc_tax_region_submit'] ) ) {
+
+		//Tax region selected action
+		$nonce = $_REQUEST['_wpnonce'];
+		if ( ! wp_verify_nonce( $nonce, 'wpsc_tax_region' ) ) {
+			wp_die( 'Error! Nonce Security Check Failed!' );
+		}
+
+		$selected_tax_region_str = isset( $_POST['wpsc_tax_region'] ) ? sanitize_text_field( stripslashes($_POST['wpsc_tax_region'] )) : '';
+
+		$wpsc_cart = WPSC_Cart::get_instance();
+
+		// Check to make sure selected region option is not tempered.
+		if (!check_tax_region_str($selected_tax_region_str)) {
+			$wpsc_cart->set_selected_tax_region('-1');
+		}else{
+			$wpsc_cart->set_selected_tax_region($selected_tax_region_str);
+		}
+
+		// Recalculate to update all the price for new regional shipping cost.
+		$wpsc_cart->calculate_cart_totals_and_postage();
+
+        // Save the cart.
+        $wpsc_cart->save_cart_to_postmeta();
+
+		wpsc_js_redirect_if_using_anchor();
 	}
 }
 
@@ -554,12 +602,10 @@ function wp_cart_add_custom_field() {
 function wp_cart_add_read_form_javascript() {
 	$debug_marker = "<!-- WP Simple Shopping Cart plugin v" . WP_CART_VERSION . " - https://wordpress.org/plugins/wordpress-simple-paypal-shopping-cart/ -->";
 	echo "\n" . $debug_marker . "\n";
-	echo '
+	ob_start();
+    ?>
 	<script type="text/javascript">
-	<!--
-	//
-	function ReadForm (obj1, tst)
-	{
+	function ReadForm (obj1, tst) {
 	    // Read the user form
 	    var i,j,pos;
 	    val_total="";val_combo="";
@@ -574,16 +620,68 @@ function wp_cart_add_read_form_javascript() {
 	            if (obj.name == "quantity" ||
 	                obj.name == "amount") continue;
 		        pos = obj.selectedIndex;        // which option selected
-		        val = obj.options[pos].value;   // selected value
+		        
+		        const selected_option = obj.options[pos];
+		        
+		        val = selected_option?.value;   // selected value
+		        if (selected_option?.getAttribute("data-display-text")){
+                    val = selected_option?.getAttribute("data-display-text");
+                }
+		        
 		        val_combo = val_combo + " (" + val + ")";
 	        }
 	    }
 		// Now summarize everything we have processed above
 		val_total = obj1.product_tmp.value + val_combo;
 		obj1.wspsc_product.value = val_total;
+
+        wpscShowCalculatedProductPrice(obj1);
 	}
-	//-->
-	</script>';
+
+    document.addEventListener('DOMContentLoaded', function (){
+        // Calculate all variation prices on initial page load.
+        const addToCartForms = document.querySelectorAll('form.wp-cart-button-form');
+        addToCartForms?.forEach(function(addToCartForm){
+            wpscShowCalculatedProductPrice(addToCartForm);
+        })
+    })
+
+    function wpscShowCalculatedProductPrice(form){
+        const productBox = form.closest('.wp_cart_product_display_bottom');
+        if (!productBox){
+            // This is not a product display box shortcode, nothing o do.
+            return;
+        }
+
+        const currentFormVarInputs = form.querySelectorAll('.wp_cart_variation1_select, .wp_cart_variation2_select, .wp_cart_variation3_select');
+        if (!currentFormVarInputs.length){
+            // This product does not have variations. Nothing to do.
+            return;
+        }
+
+        const priceBox = productBox?.querySelector('.wp_cart_product_price');
+
+        const basePriceEl = form?.querySelector('input[name="price"]');
+        const basePrice = basePriceEl?.value;
+
+        let updatedPrice = parseFloat(basePrice);
+
+        currentFormVarInputs.forEach(function(varInput){
+            const selectedOptionEl = varInput.options[varInput.selectedIndex];
+
+            const varPrice = selectedOptionEl?.getAttribute("data-price");
+            if (varPrice){
+                // Nothing to do if no variation price set.
+                updatedPrice += parseFloat(varPrice);
+            }
+        })
+
+        priceBox.innerText = '<?php echo esc_js(WP_CART_CURRENCY_SYMBOL) ?>' + updatedPrice.toFixed(2);
+    }
+
+	</script>
+    <?php
+    echo ob_get_clean();
 }
 
 /**
@@ -693,6 +791,7 @@ function wpsc_front_side_enqueue_scripts() {
 	wp_localize_script("wpsc-checkout-cart-script", 'wpscCheckoutCartMsg', array(
         'tncError' => __("You must accept the terms before you can proceed.", "wordpress-simple-paypal-shopping-cart"),
         'shippingRegionError' => __("You must select a shipping region before you can proceed.", "wordpress-simple-paypal-shopping-cart"),
+        'taxRegionError' => __("You must select a tax region before you can proceed.", "wordpress-simple-paypal-shopping-cart"),
     ));
 
 	if ($is_shipping_region_enabled) {
@@ -702,6 +801,18 @@ function wpsc_front_side_enqueue_scripts() {
 			$region_options[] = implode(':', array(strtolower($region['loc']), $region['type']));
 		}
 		wp_add_inline_script("wpsc-checkout-cart-script", "const wpscShippingRegionOptions = " . json_encode( $region_options ) .";" , 'before');
+	}
+
+	$is_tax_region_enabled = empty(get_option('wpsc_enable_tax_by_region')) ? 'false' : 'true' ;
+	wp_add_inline_script("wpsc-checkout-cart-script", "const wpscIsTaxRegionEnabled = " . $is_tax_region_enabled .";" , 'before');
+
+	if ($is_tax_region_enabled) {
+		$configured_tax_region_options  = get_option('wpsc_tax_region_variations', array() );
+		$region_options  = array();
+		foreach ($configured_tax_region_options as $region) {
+			$region_options[] = implode(':', array(strtolower($region['loc']), $region['type']));
+		}
+		wp_add_inline_script("wpsc-checkout-cart-script", "const wpscTaxRegionOptions = " . json_encode( $region_options ) .";" , 'before');
 	}
 
 	wp_register_script( "wpsc-checkout-manual", WP_CART_URL . "/assets/js/wpsc-checkout-manual.js", array( "wpsc-checkout-cart-script" ), WP_CART_VERSION);

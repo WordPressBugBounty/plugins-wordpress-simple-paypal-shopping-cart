@@ -4,7 +4,7 @@ Donate link: https://www.tipsandtricks-hq.com
 Tags: cart, shopping cart, WordPress shopping cart, WP Simple Shopping Cart, sell, sell products, stripe, shop, e-commerce, wordpress ecommerce, wordpress store, store, PayPal cart widget, sell digital products, sell service, digital downloads, paypal, paypal cart,
 Requires at least: 6.0
 Tested up to: 6.8
-Stable tag: 5.1.4
+Stable tag: 5.1.5
 License: GPLv2 or later
 
 Very easy to use Simple WordPress Shopping Cart Plugin. Great for selling products online in one click from your WordPress site.
@@ -125,11 +125,11 @@ You can translate the plugin using [this documentation](https://www.tipsandtrick
 == Usage ==
 #1) To add an 'Add to Cart' button for a product, simply add the following shortcode to a post or page next to the product. Replace PRODUCT-NAME and PRODUCT-PRICE with the actual name and price.
 
- [wp_cart_button name="PRODUCT-NAME" price="PRODUCT-PRICE"]
+`[wp_cart_button name="PRODUCT-NAME" price="PRODUCT-PRICE"]`
 
 #2) To add the shopping cart to a post or page (eg. checkout page) add the following shortcode to a post or page or use the sidebar widget to add the shopping cart to the sidebar. The shopping cart will only be visible in a post or page when a customer adds a product.
 
-[show_wp_shopping_cart]
+`[show_wp_shopping_cart]`
 
 #3) Alternatively, you have the option to utilize the Gutenberg editor blocks provided by this plugin to conveniently insert the add to cart button and shopping cart in desired locations within your content.
 
@@ -145,7 +145,7 @@ Replace PRODUCT-NAME and PRODUCT-PRICE with the actual name and price.
 
 Here is an exmaple shortcode that shows you how to use a product display box.
 
-[wp_cart_display_product name="My Awesome Product" price="25.00" thumbnail="http://www.example.com/images/product-image.jpg" description="This is a short description of the product"]
+`[wp_cart_display_product name="My Awesome Product" price="25.00" thumbnail="http://www.example.com/images/product-image.jpg" description="This is a short description of the product"]`
 
 Simply replace the values with your product specific data
 
@@ -153,30 +153,34 @@ Simply replace the values with your product specific data
 
 Add the following shortcode where you want to show the compact shopping cart:
 
-[wp_compact_cart]
+`[wp_compact_cart]`
 
 = Using Shipping =
 
-1. To use shipping cost for your product, use the "shipping" parameter. Here is an example shortcode usage:
-[wp_cart_button name="Test Product" price="19.95" shipping="4.99"]
+To apply a shipping cost to your product, use the 'shipping' parameter. Below is an example of how to include it in a shortcode:
 
-or use the following php function from your wordpress template files
-<?php echo print_wp_cart_button_for_product('product name',price,shipping cost); ?>
+`[wp_cart_button name="Test Product" price="19.95" shipping="4.99"]`
 
 Visit the [shipping setup documentation page](https://www.tipsandtricks-hq.com/ecommerce/wordpress-shopping-cart-how-the-shipping-cost-calculation-works-297) for more details.
 
-= Using Variation Control =
+= Using Variation Control (Product Variations) =
 
-1. To use variation control use the variation parameter in the shortcode:
-[wp_cart_button name="Test Product" price="25.95" var1="VARIATION-NAME|VARIATION1|VARIATION2|VARIATION3"]
+To enable variation control, use the variation parameter. Below is an example of how to include it in a shortcode:
 
-example usage: [wp_cart_button name="Test Product" price="29.95" var1="Size|small|medium|large"]
+`[wp_cart_button name="Test Product" price="25.95" var1="VARIATION-NAME|VARIATION1|VARIATION2|VARIATION3"]`
 
-2. To use multiple variation for a product (2nd or 3rd variation), use the following:
+Example shortcode usage:
 
-[wp_cart_button name="Test Product" price="29.95" var1="Size|small|medium|large" var2="Color|red|green|blue"]
+`[wp_cart_button name="Test Product" price="29.95" var1="Size|small|medium|large"]`
 
-[wp_cart_button name="Test Product" price="29.95" var1="Size|small|medium|large" var2="Color|red|green|blue" var3="Sleeve|short|full"]
+To add multiple variations to a product (such as a second or third variation), use the following format:
+
+`[wp_cart_button name="Test Product" price="29.95" var1="Size|small|medium|large" var2="Color|red|green|blue"]`
+
+To add variations with price modifiers to a product (so the selected variation can update the price), use the following format:
+
+`[wp_cart_button name="Test Product" price="15.00" var1="Size|small|medium::5|large::10" var2="Color|red|green::2|blue::3" var3="Sleeve|short|full::5"]`
+
 
 == Installation ==
 
@@ -231,6 +235,17 @@ Visit the plugin site at https://www.tipsandtricks-hq.com/wordpress-simple-paypa
 None
 
 == Changelog ==
+
+= 5.1.5 =
+- New feature added to specify price modifications for product variations. This allows you to adjust the base price of a product based on the selected variation option. [Variation Documentation](https://www.tipsandtricks-hq.com/ecommerce/simple-cart-setting-up-product-variations-4901)
+- Added the Turkish language translation file.
+- New js event listener 'wpscOnManualCheckoutSubmit' added. It triggers on manual checkout form submit.
+- New filter hook 'wpsc_before_manual_checkout_form_submit' added. This will allow adding contents befor the manual checkout submit button.
+- New action hook 'wpsc_manual_payment_checkout' added. It triggeres after manual checkout form submit on server site.
+- Added a new setting to hide the country field in the manual checkout form.
+- Added an optional phone number field to the manual checkout form.
+- New tax and tax by region feature added.
+- Product thumbnail is now optional in 'wpsc_display_product' shortcode.
 
 = 5.1.4 =
 - Refactored Cart ID handling for improved security.

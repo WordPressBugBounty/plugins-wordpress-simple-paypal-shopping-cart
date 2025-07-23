@@ -336,6 +336,34 @@ function check_shipping_region_str($str){
     return false;
 }
 
+/**
+ * Check whether the given string is a proper tax region lookup string or not.
+ *
+ * @param string $str Tax regions lookup string.
+ *
+ * @return array|bool If valid, return the tax regions array option, FALSE otherwise
+ */
+function check_tax_region_str($str){
+    // Check if customer have not selected any tax region option.
+    if (empty($str) || $str == '-1') {
+        return false;
+    }
+
+    // Get the available tax region options set in admin end.
+    $available_region_options = get_option('wpsc_tax_region_variations');
+
+    $str_to_arr = explode(':', $str);
+
+    foreach ($available_region_options as $region) {
+        if ($str_to_arr[0] === strtolower($region['loc']) && isset($str_to_arr[1]) && $str_to_arr[1] == $region['type']) {
+            // The tax region string is valid, return the original array element.
+            return $region;
+        }
+    }
+
+    return false;
+}
+
 function wpsc_get_cart_cpt_id_by_cart_id( $cart_id ) {
 	$query = new WP_Query(
 		array(
@@ -358,4 +386,58 @@ function wpsc_get_cart_cpt_id_by_cart_id( $cart_id ) {
 	}
 
 	return 0; // Not found
+}
+
+function wpsc_get_variation_price_separator(){
+	return apply_filters('wpsc_variation_price_separator', '::');
+}
+
+function wpsc_get_variation_string_parts($original_input) {
+	$input = preg_replace('/\s+/', '', $original_input);
+	// Split the string into label and value
+	$parts = explode( wpsc_get_variation_price_separator(), $input, 2);
+
+	$result = array(
+		'label' => '',
+		'price' => 0,
+		'formatted_price' => '',
+		'display_text' => $original_input,
+	);
+
+	// Validate format
+
+	if (count($parts) !== 2) {
+		return $result; // Return original if format is incorrect
+	}
+
+	$label = $parts[0];
+	$result['label'] = $label;
+	$result['display_text'] = $label;
+
+	if (!is_numeric($parts[1])) {
+		return $result; // Return only the label if price format is incorrect
+	}
+
+	$price = floatval($parts[1]);
+	$result['price'] = $price;
+
+	if ($price == 0){
+		return $result; // Just return the label if price is zero.
+	}
+
+	// Format with + or - sign
+	$formattedPrice =  ($price >= 0 ? '+' : '-') . WP_CART_CURRENCY_SYMBOL . abs($price);
+
+	$result['formatted_price'] = $formattedPrice;
+	$result['display_text'] = "$label $formattedPrice";
+
+	return $result;
+}
+
+function wpsc_get_calculated_tax_amount($price, $tax_percentage = 0){
+	if (!empty($tax_percentage)){
+		return $price * ($tax_percentage / 100);
+	}
+
+	return 0;
 }
