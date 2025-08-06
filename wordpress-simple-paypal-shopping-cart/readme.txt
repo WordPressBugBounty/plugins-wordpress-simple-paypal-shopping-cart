@@ -4,7 +4,7 @@ Donate link: https://www.tipsandtricks-hq.com
 Tags: cart, shopping cart, WordPress shopping cart, WP Simple Shopping Cart, sell, sell products, stripe, shop, e-commerce, wordpress ecommerce, wordpress store, store, PayPal cart widget, sell digital products, sell service, digital downloads, paypal, paypal cart,
 Requires at least: 6.0
 Tested up to: 6.8
-Stable tag: 5.1.7
+Stable tag: 5.1.8
 License: GPLv2 or later
 
 Very easy to use Simple WordPress Shopping Cart Plugin. Great for selling products online in one click from your WordPress site.
@@ -236,6 +236,10 @@ None
 
 == Changelog ==
 
+= 5.1.8 =
+- Updated the 'Enable Sandbox' option label and description to make them more descriptive and clear.
+- Code refactoring to improve the variable names to be more descriptive and consistent with the plugin's shortname.
+
 = 5.1.7 =
 - PHP 7.4 compatibility update.
 
@@ -252,6 +256,7 @@ None
 - Added an optional phone number field to the manual checkout form.
 - New tax and tax by region feature added.
 - Product thumbnail is now optional in 'wpsc_display_product' shortcode.
+- Some code refactored.
 
 = 5.1.4 =
 - Refactored Cart ID handling for improved security.
