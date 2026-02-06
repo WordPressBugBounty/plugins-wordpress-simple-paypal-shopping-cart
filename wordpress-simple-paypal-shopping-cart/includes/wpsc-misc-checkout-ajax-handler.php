@@ -70,7 +70,10 @@ function wpsc_stripe_create_checkout_session() {
 		$symbol = __( '$', 'wordpress-simple-paypal-shopping-cart' );
 	}
 
-	$query_args = array( 'simple_cart_stripe_ipn' => '1', 'ref_id' => $wspsc_cart->get_cart_id() );
+	$client_reference_id = $cart_id; // TODO: old code. need to remove
+	$csid = "{CHECKOUT_SESSION_ID}";  // NOTE: Stripe replaces the {CHECKOUT_SESSION_ID} with actual session id before redirecting to this url.
+
+	$query_args = array( 'simple_cart_stripe_ipn' => '1', 'ref_id' => $client_reference_id, 'csid' => $csid );
 	$stripe_ipn_url = add_query_arg( $query_args, WP_CART_SITE_URL );
 
 	wpsc_load_stripe_lib();
@@ -81,10 +84,11 @@ function wpsc_stripe_create_checkout_session() {
 		\Stripe\Stripe::setApiVersion( "2024-06-20" );
 
 		$opts = array(
-			'client_reference_id' => $cart_id,
+			'client_reference_id' => $client_reference_id,
 			'billing_address_collection' => $force_collect_address ? 'required' : 'auto',
 			'mode' => 'payment',
-			'success_url' => $stripe_ipn_url
+			'success_url' => $stripe_ipn_url,
+			'metadata' => array(),
 		);
 
 		/*
@@ -214,6 +218,13 @@ function wpsc_stripe_create_checkout_session() {
 		if (empty($tax_rate) && get_option('wpsc_enable_stripe_automatic_tax') ){
 			$opts["automatic_tax"] = array(
 				'enabled' => true,
+			);
+		}
+
+		$auto_send_invoice = get_option('wpsc_auto_send_receipt_and_invoices', false);
+		if (!empty($auto_send_invoice)){
+			$opts['invoice_creation'] = array(
+				'enabled' => true
 			);
 		}
 

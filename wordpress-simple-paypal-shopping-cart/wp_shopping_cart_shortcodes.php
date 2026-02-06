@@ -58,12 +58,14 @@ function wpsc_cart_button_handler($atts){
 
     // Check if the price is empty
 	if(empty($price)){
-            return '<div style="color:red;">'.(__("Error! You must specify a price for your product in the shortcode.", "wordpress-simple-paypal-shopping-cart")).'</div>';
+        return '<div style="color:red;">'.(__("Error! You must specify a price for your product in the shortcode.", "wordpress-simple-paypal-shopping-cart")).'</div>';
 	}
     $price = wpsc_strip_char_from_price_amount($price);
     $shipping = wpsc_strip_char_from_price_amount($shipping);
 
-	return print_wp_cart_button_for_product($name, $price, $shipping, $var1, $var2, $var3, $atts);
+	$output = print_wp_cart_button_for_product($name, $price, $shipping, $var1, $var2, $var3, $atts);
+
+    return wpsc_wrap_product_output($output);
 }
 
 function wpsc_cart_display_product_handler($atts)
@@ -112,6 +114,8 @@ function wpsc_cart_display_product_handler($atts)
         $thumb_alt = $name;
     }
 
+    $description = sanitize_text_field($description);
+
     $price = wpsc_strip_char_from_price_amount($price);
     $shipping = wpsc_strip_char_from_price_amount($shipping);
 
@@ -135,17 +139,17 @@ function wpsc_cart_display_product_handler($atts)
     <div class="wp_cart_product_display_box_wrapper">
 	    <div class="wp_cart_product_display_box">
 	        <div class="wp_cart_product_thumbnail">
-	            <?php echo $thumbnail_code; ?>
+	            <?php echo wp_kses_post($thumbnail_code); ?>
 	        </div>
 	        <div class="wp_cart_product_display_bottom">
 	            <div class="wp_cart_product_name">
-	                <?php echo $name ?>
+	                <?php echo esc_attr($name) ?>
 	            </div>
 	            <div class="wp_cart_product_description">
-		            <?php echo $description ?>
+		            <?php echo wp_kses_post($description) ?>
 	            </div>
                 <div class="wp_cart_product_price">
-	                <?php echo $formatted_price ?>
+	                <?php echo wp_kses_post($formatted_price) ?>
 	            </div>
                 <div class="wp_cart_product_button">
 	                <?php echo $button_code ?>
@@ -156,7 +160,7 @@ function wpsc_cart_display_product_handler($atts)
 	<?php
 	$display_code = ob_get_clean();
 
-    return $display_code;
+    return wpsc_wrap_product_output($display_code);
 }
 
 function wpsc_compact_cart_handler($args)

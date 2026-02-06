@@ -33,6 +33,7 @@ function show_wp_cart_stripe_settings_page()
         update_option('wpsc_stripe_collect_shipping_address', (isset($_POST['wpsc_stripe_collect_shipping_address']) && $_POST['wpsc_stripe_collect_shipping_address']!='') ? 'checked="checked"':'' );
         update_option('wpsc_enable_stripe_automatic_tax', (isset($_POST['wpsc_enable_stripe_automatic_tax']) && !empty($_POST['wpsc_enable_stripe_automatic_tax'])) ? 'checked="checked"':'' );
         update_option('wpsc_stripe_allowed_shipping_countries', $wpsc_stripe_allowed_shipping_countries );
+        update_option('wpsc_auto_send_receipt_and_invoices', (isset($_POST['wpsc_auto_send_receipt_and_invoices']) && !empty($_POST['wpsc_auto_send_receipt_and_invoices'])) ? 'checked="checked"':'' );
 
         update_option('wpspc_stripe_button_image_url', $wpspc_stripe_button_image_url);
 
@@ -59,6 +60,12 @@ function show_wp_cart_stripe_settings_page()
 		$wpsc_enable_stripe_automatic_tax = 'checked="checked"';
 	} else{
 		$wpsc_enable_stripe_automatic_tax = '';
+	}
+
+	if (get_option('wpsc_auto_send_receipt_and_invoices')){
+		$wpsc_auto_send_receipt_and_invoices = 'checked="checked"';
+	} else{
+		$wpsc_auto_send_receipt_and_invoices = '';
 	}
 
     $wpsc_stripe_allowed_shipping_countries = get_option('wpsc_stripe_allowed_shipping_countries');
@@ -138,6 +145,16 @@ function show_wp_cart_stripe_settings_page()
                         <td>
                             <input type="checkbox" name="wpsc_enable_stripe_automatic_tax" value="1" <?php esc_attr_e($wpsc_enable_stripe_automatic_tax);?> />
                             <p class="description"><?php _e("If enabled, automatic tax will be applied during Stripe checkout. Ensure that the tax option is enabled and configured in your Stripe account before activating it in our plugin.", "wordpress-simple-paypal-shopping-cart")?></p>
+                        </td>
+                    </tr>
+
+                    <tr valign="top">
+                        <th scope="row"><?php _e("Auto Send Receipt and Invoices", "wordpress-simple-paypal-shopping-cart");?></th>
+                        <td>
+                            <input type="checkbox" name="wpsc_auto_send_receipt_and_invoices" value="1" <?php esc_attr_e($wpsc_auto_send_receipt_and_invoices);?> />
+                            <p class="description">
+                                <?php echo sprintf(__("Complete the steps detailed in %s to activate the automated receipt feature.", "wordpress-simple-paypal-shopping-cart"), '<a href="https://www.tipsandtricks-hq.com/ecommerce/simple-cart-enabling-automated-stripe-receipts-and-invoices" target="_blank">this guide</a>') ?>
+                            </p>
                         </td>
                     </tr>
                 </table>

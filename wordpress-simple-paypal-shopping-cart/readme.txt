@@ -4,8 +4,8 @@ Donate link: https://www.tipsandtricks-hq.com
 Tags: cart, shopping cart, ecommerce, sell online, shop, stripe, e-commerce, wordpress ecommerce, wordpress store, store, sell digital products, sell service, digital downloads, paypal,
 Requires at least: 6.0
 Requires PHP: 7.4
-Tested up to: 6.8
-Stable tag: 5.2.1
+Tested up to: 6.9
+Stable tag: 5.2.6
 License: GPLv2 or later
 
 Lightweight, user-friendly plugin to sell products/services on WordPress. Easily add a shopping cart and start accepting orders in minutes.
@@ -85,6 +85,7 @@ or
 * Ability to use a custom checkout page style.
 * Ability to configure region based shipping additions.
 * Ability to use blocks to add the 'add to cart' button and the 'shopping cart' to your posts/pages/sidebar.
+* Option to enable AJAX add to cart buttons for a smoother user experience.
 * Option to hide the quantity field in the shopping cart. This can be useful for a site selling only digital products where the quantity is always 1.
 * Works nicely with responsive WordPress themes.
 * Can be translated into any language.
@@ -238,6 +239,24 @@ https://www.tipsandtricks-hq.com/wordpress-simple-paypal-shopping-cart-plugin-76
 None
 
 == Changelog ==
+
+= 5.2.6 =
+- Added output escaping to the new PayPal API settings interface fields.
+
+= 5.2.5 =
+- Improved the Stripe post-checkout handling code to prevent a potential issue with some server configurations.
+- Added output escaping to the 'wpsc_display_product' shortcode parameters.
+
+= 5.2.4 =
+- Added a new feature to auto send invoices to customers for Stripe checkout.
+- Fixed an issue with the new AJAX add to cart feature when a button image is used.
+
+= 5.2.3 =
+- Added a new feature to enable AJAX add to cart buttons. [view documentation](https://www.tipsandtricks-hq.com/ecommerce/using-ajax-add-to-cart-buttons)
+
+= 5.2.2 =
+- Added a new hook for the IP address so it can be customized if needed. The new filter hook is 'wpsc_get_user_ip_address'.
+- The 'custom_fields' email merge tags support added for manual checkout instruction emails.
 
 = 5.2.1 =
 - PayPal PPCP Checkout related improvements (the custom var data is added to the ipn_data array correctly).

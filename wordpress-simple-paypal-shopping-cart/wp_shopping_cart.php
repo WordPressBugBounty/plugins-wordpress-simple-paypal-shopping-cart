@@ -2,7 +2,7 @@
 
 /*
 Plugin Name: Simple Shopping Cart
-Version: 5.2.1
+Version: 5.2.6
 Plugin URI: https://www.tipsandtricks-hq.com/wordpress-simple-paypal-shopping-cart-plugin-768
 Author: Tips and Tricks HQ, Ruhul Amin, mra13
 Author URI: https://www.tipsandtricks-hq.com/
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) { //Exit if accessed directly
 	exit;
 }
 
-define( 'WP_CART_VERSION', '5.2.1' );
+define( 'WP_CART_VERSION', '5.2.6' );
 define( 'WP_CART_FOLDER', dirname( plugin_basename( __FILE__ ) ) );
 define( 'WP_CART_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_CART_URL', plugins_url( '', __FILE__ ) );
@@ -48,6 +48,7 @@ include_once( WP_CART_PATH . 'includes/classes/class.wpsc-email-handler.php' );
 include_once( WP_CART_PATH . 'includes/classes/class-wpsc-dynamic-products.php' );
 include_once( WP_CART_PATH . 'includes/class-wpsc-cart.php' );
 include_once( WP_CART_PATH . 'includes/class-wpsc-cart-item.php' );
+include_once( WP_CART_PATH . 'includes/class-wpsc-cart-ajax-handler.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-misc-checkout-ajax-handler.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-paypal-ppcp-checkout-form-related.php' );
 include_once( WP_CART_PATH . 'includes/wpsc-post-payment-related.php' );
@@ -65,16 +66,13 @@ include_once( WP_CART_PATH . 'includes/classes/class.wpsc_blocks.php' );
 include_once( WP_CART_PATH . 'lib/paypal/class-tthq-paypal-main.php' );
 
 function wpsc_always_show_cart_handler( $atts ) {
-	return print_wp_shopping_cart( $atts );
+    $output = print_wp_shopping_cart( $atts , true);
+	return wpsc_wrap_cart_output($output, $atts);
 }
 
 function wpsc_show_wp_shopping_cart_handler( $atts ) {
-	$wpsc_cart = WPSC_Cart::get_instance();
-	$output = "";
-	if ( $wpsc_cart->cart_not_empty() ) {
-		$output = print_wp_shopping_cart( $atts );
-	}
-	return $output;
+    $output = print_wp_shopping_cart( $atts, false );
+	return wpsc_wrap_cart_output($output, $atts);
 }
 
 // Reset cart option
@@ -558,7 +556,8 @@ function wp_cart_add_custom_field() {
 	$value = $wspsc_cart->get_cart_id();
 	$custom_field_val = wpc_append_values_to_custom_field( $name, $value );
 
-	$clientip = $_SERVER['REMOTE_ADDR'];
+	// $clientip = $_SERVER['REMOTE_ADDR'];
+	$clientip = wpsc_get_user_ip_address();
 	if ( ! empty( $clientip ) ) {
 		$name = 'ip';
 		$value = $clientip;
@@ -634,51 +633,7 @@ function wp_cart_add_read_form_javascript() {
 		// Now summarize everything we have processed above
 		val_total = obj1.product_tmp.value + val_combo;
 		obj1.wspsc_product.value = val_total;
-
-        wpscShowCalculatedProductPrice(obj1);
 	}
-
-    document.addEventListener('DOMContentLoaded', function (){
-        // Calculate all variation prices on initial page load.
-        const addToCartForms = document.querySelectorAll('form.wp-cart-button-form');
-        addToCartForms?.forEach(function(addToCartForm){
-            wpscShowCalculatedProductPrice(addToCartForm);
-        })
-    })
-
-    function wpscShowCalculatedProductPrice(form){
-        const productBox = form.closest('.wp_cart_product_display_bottom');
-        if (!productBox){
-            // This is not a product display box shortcode, nothing o do.
-            return;
-        }
-
-        const currentFormVarInputs = form.querySelectorAll('.wp_cart_variation1_select, .wp_cart_variation2_select, .wp_cart_variation3_select');
-        if (!currentFormVarInputs.length){
-            // This product does not have variations. Nothing to do.
-            return;
-        }
-
-        const priceBox = productBox?.querySelector('.wp_cart_product_price');
-
-        const basePriceEl = form?.querySelector('input[name="price"]');
-        const basePrice = basePriceEl?.value;
-
-        let updatedPrice = parseFloat(basePrice);
-
-        currentFormVarInputs.forEach(function(varInput){
-            const selectedOptionEl = varInput.options[varInput.selectedIndex];
-
-            const varPrice = selectedOptionEl?.getAttribute("data-price");
-            if (varPrice){
-                // Nothing to do if no variation price set.
-                updatedPrice += parseFloat(varPrice);
-            }
-        })
-
-        priceBox.innerText = '<?php echo esc_js(WP_CART_CURRENCY_SYMBOL) ?>' + updatedPrice.toFixed(2);
-    }
-
 	</script>
     <?php
     echo ob_get_clean();
@@ -820,6 +775,48 @@ function wpsc_front_side_enqueue_scripts() {
 		'requiredError' => __("This field is required", "wordpress-simple-paypal-shopping-cart"),
         'emailError' => __("The email address is not valid", "wordpress-simple-paypal-shopping-cart"),
 	));
+
+	$ajax_add_to_cart_deps = array();
+    $wpsc_vars = array(
+	    'ajaxUrl'                    => admin_url( "admin-ajax.php" ),
+	    'currencySymbol'             => WP_CART_CURRENCY_SYMBOL,
+	    'autoRedirectToCheckoutPage' => ! empty( get_option( 'wp_shopping_cart_auto_redirect_to_checkout_page', false ) ),
+	    'checkoutPageURL'            => get_option( 'cart_checkout_page_url', '' ),
+	    'shoppingCartAnchor'         => ! empty( get_option( 'shopping_cart_anchor', false ) ),
+    );
+
+	$is_ajax_add_to_cart_enabled = get_option( 'wpsc_enable_ajax_add_to_cart', false );
+    if (!empty($is_ajax_add_to_cart_enabled)) {
+		$ajax_add_to_cart_deps = array(
+			'wpsc-checkout-cart-script'
+		);
+
+		$is_stripe_checkout_enabled = get_option( 'wpspc_enable_stripe_checkout', false );
+		if ( ! empty( $is_stripe_checkout_enabled ) ) {
+			$ajax_add_to_cart_deps[] = 'wpsc-checkout-stripe';
+		}
+
+		$is_manual_checkout_enabled = get_option( 'wpsc_enable_manual_checkout', false );
+		if ( ! empty( $is_manual_checkout_enabled ) ) {
+			$ajax_add_to_cart_deps[] = 'wpsc-checkout-manual';
+		}
+
+	    $wpsc_vars['addToCart'] = array(
+		    'texts' => array(
+			    'cartLink' => __( "View Cart", "wordpress-simple-paypal-shopping-cart" ),
+		    ),
+	    );
+
+        $wpsc_vars['ajaxAddToCartEnabled'] = true;
+	}
+
+    // Public scripts
+    wp_register_script( "wpsc-product-sc-script", WP_CART_URL . "/assets/js/wpsc-product-shortcode.js", $ajax_add_to_cart_deps, WP_CART_VERSION, array(
+        'in_footer' => true,
+        'strategy'  => 'defer',
+    ) );
+    wp_localize_script( "wpsc-product-sc-script", 'wpsc_vars', $wpsc_vars );
+
 }
 
 //Handle the plugins loaded action
@@ -853,3 +850,5 @@ add_action( 'wp_head', 'wp_cart_add_read_form_javascript' );
 add_action( 'wp_enqueue_scripts', 'wpsc_front_side_enqueue_scripts' );
 add_action( 'admin_enqueue_scripts', 'wpsc_admin_side_enqueue_scripts' );
 add_action( 'admin_print_styles', 'wpsc_admin_side_styles' );
+
+add_action( 'wp', 'wpsc_handle_wp_tasks' );
