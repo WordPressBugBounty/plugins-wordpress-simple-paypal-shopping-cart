@@ -5,7 +5,7 @@ Tags: cart, shopping cart, ecommerce, sell online, shop, stripe, e-commerce, wor
 Requires at least: 6.0
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 5.2.7
+Stable tag: 5.2.8
 License: GPLv2 or later
 
 Lightweight, user-friendly plugin to sell products/services on WordPress. Easily add a shopping cart and start accepting orders in minutes.
@@ -239,6 +239,12 @@ https://www.tipsandtricks-hq.com/wordpress-simple-paypal-shopping-cart-plugin-76
 None
 
 == Changelog ==
+
+= 5.2.8 =
+- The deprecated PayPal Smart Checkout menu tab has been removed. If you were using it, switch to the new PayPal Checkout option. [See the setup guide](https://www.tipsandtricks-hq.com/ecommerce/paypal-ppcp-setup-and-configuration-5023)
+- PayPal API connection related message updated to be more clear and informative.
+- Gutenberg Block API v3 related console warning fixed.
+- Fixed a small JS related issue for the cart.
 
 = 5.2.7 =
 - Added a new settings option that can be used to specify the default PayPal locale for the PayPal Commerce Platform Checkout option.
