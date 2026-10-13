@@ -1,5 +1,9 @@
 <?php 
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 if ( wp_doing_ajax() ) {
 	add_action( 'wp_ajax_wpsc_stripe_create_checkout_session', 'wpsc_stripe_create_checkout_session' );
 	add_action( 'wp_ajax_nopriv_wpsc_stripe_create_checkout_session', 'wpsc_stripe_create_checkout_session' );
@@ -228,6 +232,10 @@ function wpsc_stripe_create_checkout_session() {
 			);
 		}
 
+		$opts['managed_payments'] = array(
+			'enabled' => false,
+		);
+		
 		$opts = apply_filters( 'wpspsc_stripe_sca_session_opts', $opts, $cart_id );// TODO: Old hook. Need to remove this.
 		$opts = apply_filters( 'wpsc_stripe_sca_session_opts', $opts, $cart_id );
 

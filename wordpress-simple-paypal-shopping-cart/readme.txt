@@ -5,7 +5,7 @@ Tags: cart, shopping cart, ecommerce, sell online, shop, stripe, e-commerce, wor
 Requires at least: 6.0
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 5.3.2
+Stable tag: 5.3.3
 License: GPLv2 or later
 
 Lightweight, user-friendly plugin to sell products/services on WordPress. Easily add a shopping cart and start accepting orders in minutes.
@@ -240,6 +240,16 @@ https://www.tipsandtricks-hq.com/wordpress-simple-paypal-shopping-cart-plugin-76
 None
 
 == Changelog ==
+
+= 5.3.3 =
+- Security improvement: PayPal Standard payment notifications are now always checked against the PayPal email address in the plugin settings. The optional "Use Strict PayPal Email Address Checking" setting has been removed. Make sure this setting uses your PayPal account's primary email address, not an alias, or payments will not be marked as paid.
+- Security improvement: Product prices are now only registered from published posts and pages created by an Editor or Administrator. Previews and drafts no longer register prices. Developers can change the required capability with the `wpsc_dynamic_product_register_capability` filter.
+- The saved product price data is cleared once after this update and rebuilt as product pages are viewed. If your site uses page caching, clear the cache after updating.
+- Improved security by escaping more output across the plugin.
+- Fixed PayPal Standard checkout using the old cart items and total after a product was added with AJAX add to cart.
+- Fixed a Stripe API error related to Stripe Managed Payments.
+- Fixed an issue with the plugin's blocks in the block editor.
+- Fixed a PHP deprecation warning when exporting orders to CSV.
 
 = 5.3.2 =
 - WordPress 7.1 shopping cart block compatibility update.

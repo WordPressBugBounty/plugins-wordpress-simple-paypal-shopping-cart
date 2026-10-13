@@ -1,5 +1,9 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 status_header( 200 );
 
 //Alternatively, we can use the wpsc_log_payment_debug() function directly.
@@ -24,17 +28,36 @@ class paypal_ipn_handler {
 		$this->ipn_response = '';
 	}
 
-	/*
-	 * This function gets called for both the following scenarios.
-	 * 1) Standard PayPal checkout IPN
-	 * 2) Smart checkout (from the wpsc_process_pp_smart_checkout() function).
-	 */
+	// Validate the verified PayPal Standard notification before fulfilling the order.
 	function validate_and_dispatch_product() {
 		//Check Product Name, Price, Currency, Receiver email
 
 		$this->debug_log( 'Executing validate_and_dispatch_product()', true );
 
-		$error_msg = '';
+		// A VERIFIED IPN authenticates the notification, not the intended merchant.
+		// Check the original values before sanitization can alter a malformed address.
+		$seller_paypal_email = get_option( 'cart_paypal_email' );
+		$receiver_email = isset( $this->ipn_data['receiver_email'] ) ? $this->ipn_data['receiver_email'] : '';
+		if ( ! is_string( $seller_paypal_email ) || ! is_email( trim( $seller_paypal_email ) ) ) {
+			$this->debug_log( 'PayPal IPN rejected: the configured PayPal email address is missing or invalid. Set the account primary email address in the plugin settings.', false );
+			return false;
+		}
+		if ( ! is_string( $receiver_email ) || '' === trim( $receiver_email ) ) {
+			$this->debug_log( 'PayPal IPN rejected: receiver_email is missing, empty or not a string.', false );
+			return false;
+		}
+		$seller_paypal_email = trim( $seller_paypal_email );
+		$receiver_email = trim( $receiver_email );
+		if ( ! is_email( $receiver_email ) ) {
+			$this->debug_log( 'PayPal IPN rejected: receiver_email is not a valid email address.', false );
+			return false;
+		}
+		if ( 0 !== strcasecmp( $seller_paypal_email, $receiver_email ) ) {
+			$this->debug_log( 'PayPal IPN rejected: recipient mismatch. Configured email: ' . $seller_paypal_email . '; receiver_email: ' . $receiver_email . '. Verify that the configured address is the PayPal account primary email, not an alias.', false );
+			return false;
+		}
+		$this->debug_log( 'PayPal recipient verification passed. receiver_email: ' . $receiver_email, true );
+
 		//Decode the custom field before sanitizing.
 		$custom_field_value = urldecode( $this->ipn_data['custom'] ); //urldecode is harmless
 		$this->ipn_data['custom'] = $custom_field_value;
@@ -172,16 +195,6 @@ class paypal_ipn_handler {
 			return;
 		}
 
-		if (get_option( 'wp_shopping_cart_strict_email_check' ) != '') {
-			$seller_paypal_email = get_option( 'cart_paypal_email' );
-			if ($seller_paypal_email != $this->ipn_data['receiver_email']) {
-				$error_msg .= 'Invalid Seller Paypal Email Address : ' . $this->ipn_data['receiver_email'];
-				$this->debug_log( $error_msg, false );
-				return;
-			} else {
-				$this->debug_log( 'Seller Paypal Email Address is Valid: ' . $this->ipn_data['receiver_email'], true );
-			}
-		}
 
 		$transaction_id = get_post_meta( $post_id, 'wpsc_txn_id', true );
 		if (! empty( $transaction_id )) {
@@ -409,6 +422,10 @@ class paypal_ipn_handler {
 		//Generate the post string from the _POST vars aswell as load the _POST vars into an array
 		$post_string = '';
 		foreach ( $_POST as $field => $value ) {
+			if ( ! is_string( $value ) ) {
+				$this->debug_log( 'PayPal IPN rejected: non-string value for field ' . json_encode( $field ) . '.', false );
+				return false;
+			}
 			$this->ipn_data[ "$field" ] = $value;
 			$post_string .= $field . '=' . urlencode( stripslashes( $value ) ) . '&';
 		}
@@ -472,7 +489,7 @@ class paypal_ipn_handler {
 		if (! $this->ipn_log)
 			return; // is logging turned off?
 		// Timestamp
-		$text = '[' . date( 'm/d/Y g:i A' ) . '] - ';
+		$text = '[' . wp_date( 'm/d/Y g:i A' ) . '] - ';
 
 		// Success or failure being logged?
 		if ($success)
@@ -490,10 +507,8 @@ class paypal_ipn_handler {
 		$text .= "\nIPN Response from Paypal Server:\n " . $this->ipn_response;
 
 		// Write to log
-		$fp = fopen( $this->ipn_log_file, 'a' );
-		fwrite( $fp, $text . "\n\n" );
-
-		fclose( $fp ); // close file
+		// Append under a lock so simultaneous payment callbacks keep all log entries.
+		file_put_contents( $this->ipn_log_file, $text . "\n\n", FILE_APPEND | LOCK_EX );
 	}
 
 	function debug_log( $message, $success, $end = false ) {
@@ -505,22 +520,21 @@ class paypal_ipn_handler {
 		if (is_array( $message )) {
 			$message = json_encode( $message );
 		}
-		$text = '[' . date( 'm/d/Y g:i A' ) . '] - ' . ( ( $success ) ? 'SUCCESS :' : 'FAILURE :' ) . $message . "\n";
+		$text = '[' . wp_date( 'm/d/Y g:i A' ) . '] - ' . ( ( $success ) ? 'SUCCESS :' : 'FAILURE :' ) . $message . "\n";
 
 		if ($end) {
 			$text .= "\n------------------------------------------------------------------\n\n";
 		}
 
 		// Write to log
-		$fp = fopen( $this->ipn_log_file, 'a' );
-		fwrite( $fp, $text );
-		fclose( $fp ); // close file
+		// Append under a lock so simultaneous payment callbacks keep all log entries.
+		file_put_contents( $this->ipn_log_file, $text, FILE_APPEND | LOCK_EX );
 	}
 
 	function debug_log_array( $array_to_write, $success, $end = false ) {
 		if (! $this->ipn_log)
 			return; // is logging turned off?
-		$text = '[' . date( 'm/d/Y g:i A' ) . '] - ' . ( ( $success ) ? 'SUCCESS :' : 'FAILURE :' ) . "\n";
+		$text = '[' . wp_date( 'm/d/Y g:i A' ) . '] - ' . ( ( $success ) ? 'SUCCESS :' : 'FAILURE :' ) . "\n";
 		ob_start();
 		print_r( $array_to_write );
 		$var = ob_get_contents();
@@ -531,9 +545,8 @@ class paypal_ipn_handler {
 			$text .= "\n------------------------------------------------------------------\n\n";
 		}
 		// Write to log
-		$fp = fopen( $this->ipn_log_file, 'a' );
-		fwrite( $fp, $text );
-		fclose( $fp ); // close filee
+		// Append under a lock so simultaneous payment callbacks keep all log entries.
+		file_put_contents( $this->ipn_log_file, $text, FILE_APPEND | LOCK_EX );
 	}
 
 }

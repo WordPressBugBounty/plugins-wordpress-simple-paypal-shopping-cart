@@ -1,4 +1,4 @@
-/* global wpsc_vars */
+/* global wpsc_vars, ReadForm */
 
 class WPSCProduct {
     constructor(productOutput) {
@@ -276,6 +276,24 @@ class WPSCAddToCartForm {
         if (cartTableBody) {
             cartTableBody.replaceWith(newCartTableBody);
         }
+
+        // The checkout form lives in tfoot, outside the replaced item rows.
+        // Refresh its cart values while preserving checkout controls and their listeners.
+        const checkoutForm = cartContent.querySelector('.wpsc_checkout_form_standard');
+        const newCheckoutForm = newCartShortCodeOutput.content.querySelector('.wpsc_checkout_form_standard');
+        if (checkoutForm && newCheckoutForm) {
+            const isCartField = input => /^(?:(?:item_name|item_number|amount|quantity|shipping|shipping2)_\d+|tax_cart|no_shipping)$/.test(input.name);
+            checkoutForm.querySelectorAll('input[type="hidden"]').forEach(input => {
+                if (isCartField(input)) {
+                    input.remove();
+                }
+            });
+            newCheckoutForm.querySelectorAll('input[type="hidden"]').forEach(input => {
+                if (isCartField(input)) {
+                    checkoutForm.appendChild(input.cloneNode(true));
+                }
+            });
+        }
     }
 
     updateCompactCart(cart, response_data) {
@@ -299,6 +317,20 @@ class WPSCAddToCartForm {
     }
 }
 
+
+/**
+ * Update the product name (with the selected variations) before a normal or AJAX submission.
+ * Delegated from the document so it also covers buttons added after page load. The capture phase
+ * makes it run before the AJAX add to cart submit handler reads the form data.
+ */
+function wpsc_readProductForm(e) {
+    const form = e.target?.closest?.('form.wp-cart-button-form');
+    if (form && typeof ReadForm === 'function') {
+        ReadForm(form, e.type === 'submit');
+    }
+}
+document.addEventListener('change', wpsc_readProductForm, true);
+document.addEventListener('submit', wpsc_readProductForm, true);
 
 document.addEventListener('DOMContentLoaded', function () {
     const products = document.querySelectorAll('.wpsc_product');
